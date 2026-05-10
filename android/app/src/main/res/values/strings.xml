@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">healthflux</string>
+    <string name="title_activity_main">healthflux</string>
+    <string name="package_name">com.synclo.app</string>
+    <string name="custom_url_scheme">com.synclo.app</string>
+</resources>
