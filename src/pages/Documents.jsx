@@ -30,6 +30,8 @@ import {
   reprocessDocument,
   semanticDocumentSearch,
 } from '@/services/documents';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 const DOC_TYPES = [
 { value: 'all', label: 'All Types', icon: FileText, color: 'var(--hf-lemon-strong)', tc: '#0a1200' },
@@ -312,8 +314,22 @@ export default function Documents() {
   }, {}), [filtered]);
 
   if (!activeProfileId) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--hf-bg)' }}>
-      <div className="w-8 h-8 rounded-full border-2 border-[#d7f576] border-t-transparent animate-spin" />
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--hf-bg)' }}>
+      <div className="max-w-sm w-full rounded-3xl p-6 text-center"
+        style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)' }}>
+        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(201,187,255,0.18)' }}>
+          <FileText size={22} style={{ color: 'var(--hf-lavender-strong)' }} />
+        </div>
+        <p className="text-base font-black mb-1" style={{ color: 'var(--hf-text)' }}>Profile Needed</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--hf-text-muted)' }}>
+          Create your profile first to view records and documents.
+        </p>
+        <Link to={createPageUrl('Onboarding')}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+          style={{ background: '#d7f576', color: '#0a1200' }}>
+          Create Profile
+        </Link>
+      </div>
     </div>);
 
 

@@ -86,9 +86,12 @@ export default function Onboarding() {
     setLoading(true);
     try {
       await base44.entities.Profile.create({
-        ...formData,
+        full_name: formData.full_name?.trim(),
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        blood_group: formData.blood_group || null,
         relationship: 'self',
-        height: formData.height ? parseFloat(formData.height) : undefined,
+        height: formData.height ? parseFloat(formData.height) : null,
       });
       // Go to family member step
       go(5);
