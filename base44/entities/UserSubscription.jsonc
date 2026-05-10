@@ -1,0 +1,89 @@
+{
+  "name": "UserSubscription",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User ID"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User email"
+    },
+    "plan_key": {
+      "type": "string",
+      "description": "Plan key (free, pro, enterprise)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "trialing",
+        "cancelled",
+        "expired",
+        "past_due"
+      ],
+      "default": "active"
+    },
+    "start_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "renew_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes about this subscription record",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "user_email",
+    "plan_key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

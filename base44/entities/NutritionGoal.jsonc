@@ -1,0 +1,74 @@
+{
+  "name": "NutritionGoal",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string"
+    },
+    "daily_calories": {
+      "type": "number",
+      "default": 2000
+    },
+    "protein_g": {
+      "type": "number",
+      "default": 50
+    },
+    "carbs_g": {
+      "type": "number",
+      "default": 250
+    },
+    "fat_g": {
+      "type": "number",
+      "default": 65
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes about dietary goals or restrictions",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "profile_id"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

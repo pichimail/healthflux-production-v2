@@ -1,0 +1,17 @@
+{
+  "name": "HealthFlux",
+  "short_name": "HealthFlux",
+  "description": "AI-powered health platform for vitals, medications, documents, wellness, insights, and family care.",
+  "theme_color": "#fff9ef",
+  "background_color": "#fff9ef",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "128x128",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

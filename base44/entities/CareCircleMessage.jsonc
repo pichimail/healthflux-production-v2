@@ -1,0 +1,127 @@
+{
+  "name": "CareCircleMessage",
+  "type": "object",
+  "properties": {
+    "care_circle_id": {
+      "type": "string",
+      "description": "ID of the CareCircle relationship"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "Profile being discussed"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the profile owner (for RLS)"
+    },
+    "caregiver_email": {
+      "type": "string",
+      "description": "Email of the caregiver (for RLS)"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of the message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Display name of sender"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "health_update",
+        "attachment"
+      ],
+      "default": "text",
+      "description": "Type of message"
+    },
+    "attachment_url": {
+      "type": "string",
+      "description": "Optional file attachment URL"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional contextual notes about this message or thread",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "care_circle_id",
+    "profile_id",
+    "sender_email",
+    "message",
+    "owner_email",
+    "caregiver_email"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.owner_email": "{{user.email}}"
+        },
+        {
+          "data.caregiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.owner_email": "{{user.email}}"
+        },
+        {
+          "data.caregiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.owner_email": "{{user.email}}"
+        },
+        {
+          "data.caregiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.sender_email": "{{user.email}}"
+        },
+        {
+          "data.owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

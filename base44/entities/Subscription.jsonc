@@ -1,0 +1,99 @@
+{
+  "name": "Subscription",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "User's email"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Subscription package ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cancelled",
+        "expired",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Subscription status"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Subscription start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Subscription end date"
+    },
+    "auto_renew": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether subscription auto-renews"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method"
+    },
+    "amount_paid": {
+      "type": "number",
+      "description": "Amount paid"
+    },
+    "last_payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last payment date"
+    }
+  },
+  "required": [
+    "user_email",
+    "package_id",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "data.user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

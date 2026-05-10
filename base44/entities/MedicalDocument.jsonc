@@ -1,0 +1,205 @@
+{
+  "name": "MedicalDocument",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "ID of the profile this document belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "Document title"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "lab_report",
+        "prescription",
+        "imaging",
+        "discharge_summary",
+        "consultation",
+        "vaccination",
+        "insurance",
+        "other"
+      ],
+      "description": "Type of medical document"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the uploaded document"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original file name"
+    },
+    "file_type": {
+      "type": "string",
+      "description": "MIME type of the file"
+    },
+    "document_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the document/report"
+    },
+    "facility_name": {
+      "type": "string",
+      "description": "Healthcare facility or provider name"
+    },
+    "doctor_name": {
+      "type": "string",
+      "description": "Doctor or provider name"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "ai_summary": {
+      "type": "string",
+      "description": "AI-generated summary of the document"
+    },
+    "ai_summary_detailed": {
+      "type": "string",
+      "description": "Enhanced AI summary with key findings and action items"
+    },
+    "key_findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-extracted key findings from document"
+    },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended action items based on document"
+    },
+    "ai_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-suggested tags (Billing, Referral, Lab Result, Prescription, Imaging, etc.)"
+    },
+    "user_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User-confirmed or custom tags"
+    },
+    "semantic_embedding": {
+      "type": "string",
+      "description": "JSON string of semantic embedding for similarity search"
+    },
+    "health_score": {
+      "type": "number",
+      "description": "AI-estimated health score from document content (0-100)"
+    },
+    "risk_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "likelihood": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "AI-identified potential health risks"
+    },
+    "preventive_plan": {
+      "type": "string",
+      "description": "AI-generated preventive care plan"
+    },
+    "extracted_medications": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Medications extracted from document"
+    },
+    "extracted_vitals": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Vitals extracted from document"
+    },
+    "extracted_lab_results": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Lab results extracted from document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploaded",
+        "processing",
+        "completed",
+        "failed",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Processing status"
+    }
+  },
+  "required": [
+    "profile_id",
+    "title",
+    "file_url"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

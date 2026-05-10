@@ -1,0 +1,132 @@
+{
+  "name": "MealLog",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string"
+    },
+    "logged_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "logged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Exact timestamp of logging"
+    },
+    "meal_type": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack",
+        "other"
+      ],
+      "default": "other"
+    },
+    "food_name": {
+      "type": "string"
+    },
+    "meal_name": {
+      "type": "string",
+      "description": "Display name for the meal"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "quantity_unit": {
+      "type": "string",
+      "default": "serving"
+    },
+    "calories": {
+      "type": "number",
+      "default": 0
+    },
+    "protein_g": {
+      "type": "number",
+      "default": 0
+    },
+    "carbs_g": {
+      "type": "number",
+      "default": 0
+    },
+    "fat_g": {
+      "type": "number",
+      "default": 0
+    },
+    "fiber_g": {
+      "type": "number",
+      "default": 0
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Photo of the meal (from camera capture)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "camera_ai",
+        "barcode",
+        "voice"
+      ],
+      "default": "manual"
+    },
+    "ai_analysis": {
+      "type": "object",
+      "description": "Full AI analysis result"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "profile_id",
+    "food_name",
+    "logged_date",
+    "meal_type"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

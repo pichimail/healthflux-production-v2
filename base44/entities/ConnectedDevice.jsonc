@@ -1,0 +1,125 @@
+{
+  "name": "ConnectedDevice",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "User email"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "Profile ID"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "google_fit",
+        "apple_health",
+        "fitbit",
+        "garmin",
+        "samsung_health",
+        "manual"
+      ],
+      "description": "Device/platform type"
+    },
+    "device_name": {
+      "type": "string",
+      "description": "Device display name"
+    },
+    "is_connected": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_sync": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last sync timestamp"
+    },
+    "sync_steps": {
+      "type": "boolean",
+      "default": true
+    },
+    "sync_sleep": {
+      "type": "boolean",
+      "default": true
+    },
+    "sync_heart_rate": {
+      "type": "boolean",
+      "default": true
+    },
+    "sync_calories": {
+      "type": "boolean",
+      "default": true
+    },
+    "access_token": {
+      "type": "string",
+      "description": "OAuth token (encrypted)"
+    },
+    "daily_steps": {
+      "type": "number",
+      "description": "Latest daily steps"
+    },
+    "sleep_hours": {
+      "type": "number",
+      "description": "Latest sleep hours"
+    },
+    "avg_heart_rate": {
+      "type": "number",
+      "description": "Latest avg heart rate"
+    },
+    "calories_burned": {
+      "type": "number",
+      "description": "Latest calories burned"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes about this connected device or its configuration",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "user_email",
+    "device_type"
+  ],
+  "rls": {
+    "create": {
+      "data.user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

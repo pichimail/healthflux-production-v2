@@ -1,0 +1,140 @@
+{
+  "name": "PersonalizedDietPlan",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "Profile ID"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Week start date"
+    },
+    "health_context": {
+      "type": "object",
+      "description": "Health data used to generate plan"
+    },
+    "daily_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string"
+          },
+          "breakfast": {
+            "type": "string"
+          },
+          "lunch": {
+            "type": "string"
+          },
+          "dinner": {
+            "type": "string"
+          },
+          "snacks": {
+            "type": "string"
+          },
+          "calories": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "7-day meal plan"
+    },
+    "nutritional_goals": {
+      "type": "object",
+      "description": "Daily macro/micro targets"
+    },
+    "foods_to_avoid": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "foods_to_include": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "lifestyle_tips": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "health_conditions_addressed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ai_rationale": {
+      "type": "string",
+      "description": "Why this plan was generated"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "generating",
+        "ready",
+        "archived"
+      ],
+      "default": "generating"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional overview or goals for this personalized diet plan",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "profile_id",
+    "week_start"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

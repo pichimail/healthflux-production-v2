@@ -1,0 +1,102 @@
+{
+  "name": "RefillReminder",
+  "type": "object",
+  "properties": {
+    "medication_id": {
+      "type": "string",
+      "description": "ID of the medication"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "ID of the profile"
+    },
+    "refill_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When refill is needed"
+    },
+    "pharmacy_name": {
+      "type": "string",
+      "description": "Pharmacy name"
+    },
+    "pharmacy_phone": {
+      "type": "string",
+      "description": "Pharmacy phone number"
+    },
+    "prescription_number": {
+      "type": "string",
+      "description": "Prescription number"
+    },
+    "refills_remaining": {
+      "type": "number",
+      "description": "Number of refills left"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ordered",
+        "ready",
+        "picked_up"
+      ],
+      "default": "pending",
+      "description": "Refill status"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether reminder was sent"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes or additional details about this refill reminder",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "medication_id",
+    "profile_id",
+    "refill_due_date"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

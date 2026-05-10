@@ -1,0 +1,129 @@
+{
+  "name": "CareCircle",
+  "type": "object",
+  "properties": {
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the health data owner"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "Profile being shared"
+    },
+    "caregiver_email": {
+      "type": "string",
+      "description": "Email of the invited caregiver"
+    },
+    "caregiver_name": {
+      "type": "string"
+    },
+    "relationship": {
+      "type": "string",
+      "description": "e.g., Doctor, Spouse, Child"
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "view_vitals": {
+          "type": "boolean",
+          "default": true
+        },
+        "view_medications": {
+          "type": "boolean",
+          "default": true
+        },
+        "view_documents": {
+          "type": "boolean",
+          "default": false
+        },
+        "view_labs": {
+          "type": "boolean",
+          "default": true
+        },
+        "view_insights": {
+          "type": "boolean",
+          "default": false
+        },
+        "add_notes": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "revoked"
+      ],
+      "default": "pending"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "message": {
+      "type": "string",
+      "description": "Optional message to caregiver"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of this care circle relationship and its purpose",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "owner_email",
+    "profile_id",
+    "caregiver_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.caregiver_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

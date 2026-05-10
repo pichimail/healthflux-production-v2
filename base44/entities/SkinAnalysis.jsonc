@@ -1,0 +1,141 @@
+{
+  "name": "SkinAnalysis",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "ID of the profile"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the uploaded skin image"
+    },
+    "analysis_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of analysis"
+    },
+    "conditions_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Conditions detected"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "mild",
+        "moderate",
+        "severe"
+      ],
+      "description": "Overall severity"
+    },
+    "severity_score": {
+      "type": "number",
+      "description": "Severity score 0-100"
+    },
+    "body_location": {
+      "type": "string",
+      "description": "Location on body"
+    },
+    "triage_advice": {
+      "type": "string",
+      "description": "Skincare triage advice"
+    },
+    "skincare_routine": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended skincare steps"
+    },
+    "ingredients_to_avoid": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ingredients to avoid"
+    },
+    "see_doctor_urgency": {
+      "type": "string",
+      "enum": [
+        "no",
+        "within_month",
+        "within_week",
+        "immediately"
+      ],
+      "description": "Doctor visit urgency"
+    },
+    "ai_confidence": {
+      "type": "number",
+      "description": "AI confidence 0-1"
+    },
+    "tracking_notes": {
+      "type": "string",
+      "description": "Notes for long-term tracking"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional patient-facing description or context for this skin analysis",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "profile_id",
+    "image_url",
+    "analysis_date"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

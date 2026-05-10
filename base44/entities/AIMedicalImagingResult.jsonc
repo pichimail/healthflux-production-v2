@@ -1,0 +1,137 @@
+{
+  "name": "AIMedicalImagingResult",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "ID of the profile"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the uploaded image"
+    },
+    "image_type": {
+      "type": "string",
+      "enum": [
+        "xray",
+        "ct_scan",
+        "mri",
+        "ultrasound",
+        "other"
+      ],
+      "description": "Type of medical image"
+    },
+    "body_part": {
+      "type": "string",
+      "description": "Body part imaged"
+    },
+    "plain_summary": {
+      "type": "string",
+      "description": "Plain language summary for patients"
+    },
+    "clinical_findings": {
+      "type": "string",
+      "description": "Clinical findings for healthcare providers"
+    },
+    "anomalies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Detected anomalies"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "moderate",
+        "high",
+        "critical"
+      ],
+      "description": "Overall risk level"
+    },
+    "diet_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Diet suggestions based on findings"
+    },
+    "follow_up_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommended follow-up actions"
+    },
+    "ai_confidence": {
+      "type": "number",
+      "description": "AI confidence score 0-1"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "scan_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the scan"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "profile_id",
+    "image_url",
+    "image_type"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

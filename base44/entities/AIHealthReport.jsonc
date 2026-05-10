@@ -1,0 +1,121 @@
+{
+  "name": "AIHealthReport",
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string"
+    },
+    "report_period": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly"
+      ],
+      "default": "weekly"
+    },
+    "period_label": {
+      "type": "string",
+      "description": "e.g. 'Week of Mar 1 2026'"
+    },
+    "vitals_summary": {
+      "type": "string"
+    },
+    "medication_adherence_summary": {
+      "type": "string"
+    },
+    "trend_analysis": {
+      "type": "string"
+    },
+    "risk_predictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "risk": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "lifestyle_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "overall_score": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "generating",
+        "ready",
+        "failed"
+      ],
+      "default": "generating"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional overview or editorial notes about this health report",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "profile_id",
+    "report_period"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "name": "UsageMeter",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "feature_key": {
+      "type": "string",
+      "description": "e.g. ai_insights, ocr_pages, exports"
+    },
+    "period_key": {
+      "type": "string",
+      "description": "e.g. 2026-03 for monthly, or 'lifetime'"
+    },
+    "used_count": {
+      "type": "number",
+      "default": 0
+    },
+    "limit_count": {
+      "type": "number",
+      "description": "-1 = unlimited"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional notes about this usage meter entry",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "user_email",
+    "feature_key",
+    "period_key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

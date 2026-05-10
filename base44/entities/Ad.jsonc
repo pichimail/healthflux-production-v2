@@ -1,0 +1,117 @@
+{
+  "name": "Ad",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Ad title"
+    },
+    "ad_type": {
+      "type": "string",
+      "enum": [
+        "banner",
+        "video",
+        "interstitial"
+      ],
+      "description": "Type of ad"
+    },
+    "placement": {
+      "type": "string",
+      "enum": [
+        "home_top",
+        "home_bottom",
+        "health_top",
+        "wellness_top",
+        "nutrition_top",
+        "interstitial_global"
+      ],
+      "description": "Where the ad appears"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "Image or video URL"
+    },
+    "redirect_url": {
+      "type": "string",
+      "description": "Click destination URL"
+    },
+    "skip_after_seconds": {
+      "type": "number",
+      "default": 5,
+      "description": "Interstitial/video skip delay"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false
+    },
+    "schedule_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "schedule_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "frequency_cap_daily": {
+      "type": "number",
+      "default": 3,
+      "description": "Max impressions per user per day"
+    },
+    "targeting_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Target user roles (empty = all)"
+    },
+    "impressions": {
+      "type": "number",
+      "default": 0
+    },
+    "clicks": {
+      "type": "number",
+      "default": 0
+    },
+    "skips": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "ad_type",
+    "placement"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.is_active": true
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
