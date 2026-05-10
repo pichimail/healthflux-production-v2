@@ -5,33 +5,49 @@
  * 
  * REQUIRES:
  *   npm install @capacitor/core @capacitor/cli
- *   npm install @nicbou/capacitor-healthkit   (iOS - Apple Health)
- *   npm install @nicbou/capacitor-google-fit  (Android - Google Fit)
+ *   npm install @perfood/capacitor-healthkit   (iOS - Apple Health)
+ *   npm install @perfood/capacitor-google-fit  (Android - Google Fit)
  *   npx cap sync
  * 
  * Falls back gracefully in web browser (shows "Use native app" message)
  */
 
-import { Capacitor } from '@capacitor/core';
-
-const isNative = Capacitor.isNativePlatform();
-const platform = Capacitor.getPlatform(); // 'ios' | 'android' | 'web'
+let isNative = false;
+let platform = 'web'; // 'ios' | 'android' | 'web'
+let capacitorLoaded = false;
 
 let HealthKit = null;
 let GoogleFit = null;
 
+async function ensureCapacitor() {
+  if (capacitorLoaded) return;
+  capacitorLoaded = true;
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    isNative = Capacitor.isNativePlatform();
+    platform = Capacitor.getPlatform();
+  } catch {
+    // Web/Vercel builds without Capacitor should still work.
+    isNative = false;
+    platform = 'web';
+  }
+}
+
 // Lazy-load native plugins only when on device
 async function loadPlugins() {
+  await ensureCapacitor();
+  if (!isNative) return;
+
   if (platform === 'ios') {
     try {
-      const mod = await import('@nicbou/capacitor-healthkit');
+      const mod = await import('@perfood/capacitor-healthkit');
       HealthKit = mod.CapacitorHealthkit;
     } catch (e) {
       console.warn('HealthKit plugin not available:', e.message);
     }
   } else if (platform === 'android') {
     try {
-      const mod = await import('@nicbou/capacitor-google-fit');
+      const mod = await import('@perfood/capacitor-google-fit');
       GoogleFit = mod.GoogleFit;
     } catch (e) {
       console.warn('GoogleFit plugin not available:', e.message);
@@ -43,6 +59,7 @@ async function loadPlugins() {
  * Check if native health sync is available
  */
 export function isHealthSyncAvailable() {
+  // During web runtime this remains false; in native builds it will become true after first load.
   return isNative && (platform === 'ios' || platform === 'android');
 }
 
