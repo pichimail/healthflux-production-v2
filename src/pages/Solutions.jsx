@@ -201,3 +201,5 @@ export default function Solutions() {
         </div>
       </section>
     </MarketingShell>
+  );
+}

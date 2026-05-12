@@ -1682,37 +1682,66 @@ BEGIN
   END IF;
 END $$;
 
--- 2) Ensure RLS enabled on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- 2) Ensure RLS/policies on storage.objects when role has ownership privileges.
+-- In some Supabase projects, SQL Editor role is not owner of storage.objects.
+-- We skip with NOTICE instead of failing the entire migration.
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping ALTER TABLE storage.objects ENABLE RLS (insufficient privilege)';
+  END;
 
--- 3) Policies: public read + authenticated write for app buckets
-DROP POLICY IF EXISTS "hf_storage_public_read" ON storage.objects;
-CREATE POLICY "hf_storage_public_read"
-  ON storage.objects
-  FOR SELECT
-  USING (bucket_id IN ('uploads', 'documents'));
+  BEGIN
+    DROP POLICY IF EXISTS "hf_storage_public_read" ON storage.objects;
+    CREATE POLICY "hf_storage_public_read"
+      ON storage.objects
+      FOR SELECT
+      USING (bucket_id IN ('uploads', 'documents'));
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping storage select policy create (insufficient privilege)';
+  END;
 
-DROP POLICY IF EXISTS "hf_storage_auth_insert" ON storage.objects;
-CREATE POLICY "hf_storage_auth_insert"
-  ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id IN ('uploads', 'documents'));
+  BEGIN
+    DROP POLICY IF EXISTS "hf_storage_auth_insert" ON storage.objects;
+    CREATE POLICY "hf_storage_auth_insert"
+      ON storage.objects
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (bucket_id IN ('uploads', 'documents'));
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping storage insert policy create (insufficient privilege)';
+  END;
 
-DROP POLICY IF EXISTS "hf_storage_auth_update" ON storage.objects;
-CREATE POLICY "hf_storage_auth_update"
-  ON storage.objects
-  FOR UPDATE
-  TO authenticated
-  USING (bucket_id IN ('uploads', 'documents'))
-  WITH CHECK (bucket_id IN ('uploads', 'documents'));
+  BEGIN
+    DROP POLICY IF EXISTS "hf_storage_auth_update" ON storage.objects;
+    CREATE POLICY "hf_storage_auth_update"
+      ON storage.objects
+      FOR UPDATE
+      TO authenticated
+      USING (bucket_id IN ('uploads', 'documents'))
+      WITH CHECK (bucket_id IN ('uploads', 'documents'));
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping storage update policy create (insufficient privilege)';
+  END;
 
-DROP POLICY IF EXISTS "hf_storage_auth_delete" ON storage.objects;
-CREATE POLICY "hf_storage_auth_delete"
-  ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (bucket_id IN ('uploads', 'documents'));
+  BEGIN
+    DROP POLICY IF EXISTS "hf_storage_auth_delete" ON storage.objects;
+    CREATE POLICY "hf_storage_auth_delete"
+      ON storage.objects
+      FOR DELETE
+      TO authenticated
+      USING (bucket_id IN ('uploads', 'documents'));
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      RAISE NOTICE 'Skipping storage delete policy create (insufficient privilege)';
+  END;
+END $$;
 
 -- =====================================================================
 -- END: 008_storage_buckets_and_policies.sql

@@ -297,26 +297,3 @@ export default function Terms() {
   );
 }
 
-const sections = [
-  {
-    id: "scope",
-    eyebrow: "Section 01",
-    title: "Scope of service",
-    body: "HealthFlux is a personal health platform for records, reminders, AI summaries, and care coordination. It is not a replacement for licensed medical diagnosis or emergency care.",
-  },
-  {
-    id: "accounts",
-    eyebrow: "Section 02",
-    title: "Accounts, profiles, and data responsibility",
-    body: "Users are responsible for account security, profile accuracy, and appropriate use of shared family or caregiver access. Profile context should reflect the real person whose data is being managed.",
-  },
-  {
-    id: "ai",
-    eyebrow: "Section 03",
-    title: "AI-generated content disclaimer",
-    body: "AI assistant, OCR, reports, and summaries are informational. They may be incomplete or mistaken, and must not be treated as a substitute for qualified medical advice.",
-  },
-  {
-    id: "limits",
-    eyebrow: "Section 04",
-    title: "Operational limits and acceptable use",

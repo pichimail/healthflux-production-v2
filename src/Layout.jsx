@@ -47,7 +47,7 @@ function useOnboardingGate() {
   return { checked, needsOnboarding };
 }
 
-const NO_LAYOUT_PAGES = ['Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy'];
+const NO_LAYOUT_PAGES = ['Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy', 'Cookies'];
 const ADMIN_PAGES = [
   'AdminDashboard', 'AdminUsers', 'AdminRoles', 'AdminPackages',
   'AdminNotifications', 'AdminFeatureFlags', 'AdminAnalytics',

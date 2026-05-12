@@ -92,6 +92,7 @@ import Platform from './pages/Platform';
 import Medications from './pages/Medications';
 import Onboarding from './pages/Onboarding';
 import Pricing from './pages/Pricing';
+import Cookies from './pages/Cookies';
 import Privacy from './pages/Privacy';
 import Profiles from './pages/Profiles';
 import PublicShare from './pages/PublicShare';
@@ -157,6 +158,7 @@ export const PAGES = {
     "Platform": Platform,
     "Medications": Medications,
     "Onboarding": Onboarding,
+    "Cookies": Cookies,
     "Pricing": Pricing,
     "Privacy": Privacy,
     "Profiles": Profiles,
