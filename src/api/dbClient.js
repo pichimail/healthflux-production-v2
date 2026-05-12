@@ -11,6 +11,7 @@
  * Entity → Table name mapping handles camelCase → snake_case automatically.
  */
 import db from '@/lib/db';
+import { Core as IntegrationsCore } from '@/api/integrations';
 
 // CamelCase entity → snake_case table mapping
 const TABLE_MAP = {
@@ -204,12 +205,50 @@ const authProxy = {
 // Build functions proxy (calls API routes instead of Base44 functions)
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+async function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  try {
+    const { data } = await db.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {}
+  return headers;
+}
+
+const FUNCTION_ROUTE_MAP = {
+  aiHealthChat: 'health-chat',
+  symptomTriage: 'symptom-triage',
+  checkDrugInteractions: 'drug-interactions',
+  analyzeMedicalImage: 'analyze-image',
+  analyzeSkinImage: 'analyze-image',
+  nutritionImageAnalysis: 'analyze-image',
+  generateDietPlan: 'diet-plan',
+  generateAIHealthReport: 'health-report',
+  aiDocumentSearch: 'document-search',
+  askDocumentQuestion: 'document-qa',
+  extractMedicationFromImage: 'extract-medication',
+  healthCoaching: 'health-coaching',
+  dailyHealthGoals: 'daily-goals',
+  crossDocumentInsights: 'cross-insights',
+  parseVoiceLog: 'parse-voice',
+  semanticDocumentSearch: 'document-search',
+  reconcileMedications: 'reconcile-medications',
+  ocrLabReport: 'ocr-lab-report',
+};
+
 const functionsProxy = {
   async invoke(functionName, params = {}) {
-    const res = await fetch(`${API_BASE}/ai/${functionName}`, {
+    const route = FUNCTION_ROUTE_MAP[functionName] || 'invoke';
+    const payload =
+      route === 'invoke'
+        ? { function_name: functionName, ...params }
+        : params;
+
+    const res = await fetch(`${API_BASE}/ai/${route}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      headers: await getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const errText = await res.text();
@@ -234,6 +273,7 @@ export const base44 = {
   entities: entitiesProxy,
   auth: authProxy,
   functions: functionsProxy,
+  integrations: { Core: IntegrationsCore },
   // asServiceRole not needed — server-side API routes handle this
   asServiceRole: { integrations: { Core: { InvokeLLM: () => { throw new Error('Use API routes instead of InvokeLLM'); } } } },
 };

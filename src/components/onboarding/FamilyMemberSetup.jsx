@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { callAI } from '@/components/utils/aiService';
+import { callAIVision, uploadFile } from '@/components/utils/aiService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,8 +74,8 @@ export default function FamilyMemberSetup({ onDone }) {
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const result = await callAI({
+      const { url: fileUrl } = await uploadFile(file);
+      const result = await callAIVision({
         prompt: `Extract all family members from this health insurance document. For each person, extract their full name, approximate age, gender (male/female/other), and relationship to the primary policy holder (self/spouse/child/parent/sibling/other). Skip the primary holder (self). Return ONLY the family members.`,
         response_json_schema: {
           type: "object",
@@ -94,7 +94,8 @@ export default function FamilyMemberSetup({ onDone }) {
             }
           }
         },
-        file_urls: [file_url]
+        file_urls: [fileUrl],
+        functionName: 'extractInsuranceData',
       });
       if (result?.members?.length) {
         const mapped = result.members.map(m => ({

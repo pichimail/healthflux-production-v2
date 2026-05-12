@@ -53,6 +53,8 @@ export default function Onboarding() {
   const [checking, setChecking] = useState(true);
   const [insuranceProcessing, setInsuranceProcessing] = useState(false);
   const [insuranceData, setInsuranceData] = useState(null);
+  const [insuranceUpload, setInsuranceUpload] = useState(null);
+  const [insuranceError, setInsuranceError] = useState('');
   const [formData, setFormData] = useState({
     full_name: '', date_of_birth: '', gender: '', blood_group: '', height: '',
   });
@@ -98,8 +100,10 @@ export default function Onboarding() {
     const file = e.target.files?.[0];
     if (!file) return;
     setInsuranceProcessing(true);
+    setInsuranceError('');
     try {
       const { url } = await uploadFile(file);
+      setInsuranceUpload({ url, name: file.name, size: file.size });
       const result = await callAIVision({
         prompt: `Extract ALL family member information from this health insurance document.
 Return JSON with this exact structure:
@@ -133,6 +137,7 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
       }
     } catch (err) {
       console.error('Insurance extraction failed:', err);
+      setInsuranceError('Insurance upload or extraction failed. Please retry with a clear image/PDF.');
     }
     setInsuranceProcessing(false);
   };
@@ -145,9 +150,45 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
         relationship: 'self',
         height: formData.height ? parseFloat(formData.height) : undefined,
         onboarding_completed: true,
+        preferred_language: selectedLang || 'en',
+        insurance_provider: insuranceData?.insurer || undefined,
+        insurance_policy_number: insuranceData?.policy_number || undefined,
+        insurance_plan_name: insuranceData?.plan_name || undefined,
+        insurance_valid_from: insuranceData?.valid_from || undefined,
+        insurance_valid_to: insuranceData?.valid_to || undefined,
+        insurance_sum_insured: insuranceData?.sum_insured ? Number(insuranceData.sum_insured) : undefined,
+        insurance_document_url: insuranceUpload?.url || undefined,
         plan_type: 'free',
         subscription_status: 'inactive',
       });
+
+      if (insuranceUpload?.url) {
+        try {
+          await base44.entities.MedicalDocument.create({
+            profile_id: profile?.id,
+            title: insuranceData?.insurer
+              ? `${insuranceData.insurer} Insurance Document`
+              : insuranceUpload.name || 'Insurance Document',
+            document_type: 'insurance',
+            file_url: insuranceUpload.url,
+            status: 'completed',
+            ai_summary: insuranceData
+              ? `Policy: ${insuranceData.policy_number || 'N/A'} | Members detected: ${insuranceData.members?.length || 0}`
+              : 'Uploaded during onboarding',
+            ai_tags: ['insurance', 'onboarding'],
+            metadata: {
+              policy_number: insuranceData?.policy_number || null,
+              insurer: insuranceData?.insurer || null,
+              plan_name: insuranceData?.plan_name || null,
+              valid_from: insuranceData?.valid_from || null,
+              valid_to: insuranceData?.valid_to || null,
+              sum_insured: insuranceData?.sum_insured || null,
+            },
+          });
+        } catch (docErr) {
+          console.error('Insurance document record creation failed:', docErr);
+        }
+      }
 
       // If insurance data has family members, auto-create them
       if (insuranceData?.members?.length > 1) {
@@ -170,6 +211,7 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
       }
     } catch (err) {
       console.error('Profile creation failed:', err);
+      window.alert('Failed to create profile. Please try again.');
     }
     setLoading(false);
   };
@@ -313,6 +355,11 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
                   <p className="text-xs mb-3" style={{ color: 'var(--hf-text-muted)' }}>
                     Upload your family health insurance card/document. We'll auto-extract family member details and create profiles for everyone.
                   </p>
+                  {insuranceError && (
+                    <p className="text-xs mb-2" style={{ color: 'var(--hf-coral-strong)' }}>
+                      {insuranceError}
+                    </p>
+                  )}
 
                   {!insuranceData && (
                     <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed cursor-pointer hover:border-opacity-100 transition-all"
@@ -348,6 +395,11 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
                       {insuranceData.sum_insured && (
                         <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Sum Insured: ₹{Number(insuranceData.sum_insured).toLocaleString()}</p>
                       )}
+                      {insuranceUpload?.name && (
+                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
+                          Uploaded: {insuranceUpload.name}
+                        </p>
+                      )}
                       <div className="pt-1">
                         <p className="text-xs font-medium mb-1">Family Members Found ({insuranceData.members?.length || 0}):</p>
                         {insuranceData.members?.map((m, i) => (
@@ -364,7 +416,7 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => setInsuranceData(null)} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
+                      <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
                         Remove & upload different document
                       </button>
                     </div>

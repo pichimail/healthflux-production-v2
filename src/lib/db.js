@@ -20,7 +20,7 @@ const DB_PROVIDER = import.meta.env.VITE_DB_PROVIDER || 'supabase';
 // ══════════════════════════════════════
 let supabase = null;
 
-async function getSupabaseClient() {
+export async function getSupabaseClient() {
   if (supabase) return supabase;
   const { createClient } = await import('@supabase/supabase-js');
   supabase = createClient(

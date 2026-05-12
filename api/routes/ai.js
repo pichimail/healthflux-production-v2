@@ -41,13 +41,13 @@ router.post('/invoke', async (req, res) => {
 // ─── Vision / file analysis ──────────────────────────────────────
 router.post('/vision', async (req, res) => {
   try {
-    const { prompt, file_urls, response_json_schema, function_name } = req.body;
+    const { prompt, system_prompt, file_urls, response_json_schema, function_name } = req.body;
     const opts = {
       jsonMode: !!response_json_schema,
       imageUrls: file_urls || [],
       maxTokens: 4096,
     };
-    const result = await callAI(function_name || 'vision', '', prompt, opts);
+    const result = await callAI(function_name || 'vision', system_prompt || '', prompt, opts);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
