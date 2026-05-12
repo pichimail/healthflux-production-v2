@@ -31,6 +31,10 @@ DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 DROP POLICY IF EXISTS "profiles_delete_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_strict" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_strict" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_strict" ON profiles;
+DROP POLICY IF EXISTS "profiles_delete_strict" ON profiles;
 
 -- Strict SELECT: Only see your own family profiles.
 CREATE POLICY "profiles_select_strict"
