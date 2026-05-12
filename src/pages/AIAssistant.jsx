@@ -21,8 +21,6 @@ const QUICK_PROMPTS = [
   { icon: '⚠️', text: 'Any health risks I should know?' },
 ];
 
-const PASTEL_PROMPT_COLORS = ['#f7c9a3', '#c9bbff', '#a8e6cf', '#9bb4ff', '#f28c8c'];
-
 const URGENCY_COLORS = {
   emergency:    { bg: 'rgba(242,140,140,0.12)', border: '#f28c8c55', text: '#f28c8c', emoji: '🚨' },
   urgent:       { bg: 'rgba(247,201,163,0.12)', border: '#f7c9a355', text: '#f7c9a3', emoji: '⚡' },
@@ -178,10 +176,10 @@ Be specific, reference actual values, and keep language accessible.`,
   const abnormalLabs = labs.filter(l => l.flag !== 'normal');
 
   const statsBar = [
-    { icon: '❤️', v: vitals.length, label: 'Vitals', bg: '#f7c9a3' },
-    { icon: '💊', v: meds.length, label: 'Meds', bg: '#a8e6cf' },
-    { icon: '🧪', v: labs.length, label: 'Labs', bg: '#c9bbff' },
-    { icon: '⚠️', v: abnormalLabs.length, label: 'Alerts', bg: '#f28c8c' },
+    { v: vitals.length, label: 'Vitals', color: 'var(--hf-coral-strong)', bg: 'rgba(242,140,140,0.12)' },
+    { v: meds.length, label: 'Meds', color: 'var(--hf-peach-strong)', bg: 'rgba(247,201,163,0.12)' },
+    { v: labs.length, label: 'Labs', color: 'var(--hf-lavender-strong)', bg: 'rgba(201,187,255,0.12)' },
+    { v: abnormalLabs.length, label: 'Alerts', color: 'var(--hf-coral-strong)', bg: 'rgba(242,140,140,0.1)' },
   ];
 
   return (
@@ -191,8 +189,8 @@ Be specific, reference actual values, and keep language accessible.`,
       <div className="px-5 pt-5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: '#c9bbff', border: '1px solid #b7a4f0' }}>
-            <span className="text-xl" role="img" aria-label="brain">🧠</span>
+            style={{ background: 'rgba(201,187,255,0.2)', border: '1px solid rgba(201,187,255,0.3)' }}>
+            <Brain size={20} style={{ color: 'var(--hf-lavender-strong)' }} />
           </div>
           <div>
             <h1 className="text-lg font-black" style={{ color: 'var(--hf-text)' }}>AI Health Assistant</h1>
@@ -206,10 +204,9 @@ Be specific, reference actual values, and keep language accessible.`,
         <div className="grid grid-cols-4 gap-2 mb-4">
           {statsBar.map(s => (
             <div key={s.label} className="rounded-2xl p-2.5 text-center"
-              style={{ background: s.bg, border: '1px solid rgba(10,18,0,0.1)' }}>
-              <p className="text-sm">{s.icon}</p>
-              <p className="text-base font-black" style={{ color: '#111827' }}>{s.v}</p>
-              <p className="text-[9px] font-bold uppercase tracking-wide mt-0.5" style={{ color: '#111827' }}>{s.label}</p>
+              style={{ background: s.bg, border: `1px solid ${s.color}33` }}>
+              <p className="text-base font-black" style={{ color: s.color }}>{s.v}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide mt-0.5" style={{ color: s.color, opacity: 0.8 }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -226,7 +223,7 @@ Be specific, reference actual values, and keep language accessible.`,
               onClick={() => setMode(m.key)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all"
               style={mode === m.key
-                ? { background: '#d7f576', color: '#0a1200', boxShadow: '0 2px 8px rgba(215,245,118,0.35)' }
+                ? { background: '#c9bbff', color: '#1a0a40', boxShadow: '0 2px 8px rgba(201,187,255,0.3)' }
                 : { color: 'var(--hf-text-muted)' }
               }
             >
@@ -276,11 +273,7 @@ Be specific, reference actual values, and keep language accessible.`,
                   <button key={p.text} onClick={() => sendMessage(p.text)}
                     disabled={loading}
                     className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all active:scale-95"
-                    style={{
-                      background: PASTEL_PROMPT_COLORS[QUICK_PROMPTS.findIndex((x) => x.text === p.text) % PASTEL_PROMPT_COLORS.length],
-                      border: '1px solid rgba(10,18,0,0.12)',
-                      color: '#111827'
-                    }}>
+                    style={{ background: 'rgba(201,187,255,0.1)', border: '1px solid rgba(201,187,255,0.25)', color: 'var(--hf-lavender-strong)' }}>
                     <span>{p.icon}</span> {p.text}
                   </button>
                 ))}

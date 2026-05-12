@@ -7,24 +7,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, User, Heart, Droplets, Ruler, ArrowRight, ArrowLeft, Check, Sparkles, Users } from 'lucide-react';
+import { Activity, User, Heart, Droplets, Ruler, ArrowRight, ArrowLeft, Check, Sparkles, Users, Globe, FileText, Upload, Loader2, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';
+import { callAIVision, uploadFile } from '@/components/utils/aiService';
 
 const STEPS = [
   { id: 1, title: 'Welcome', subtitle: 'Tell us your name' },
   { id: 2, title: 'About You', subtitle: 'Basic personal details' },
   { id: 3, title: 'Health Info', subtitle: 'A few medical details' },
-  { id: 4, title: "You're all set!", subtitle: 'Review & confirm' },
-  { id: 5, title: 'Family Members', subtitle: 'Add your loved ones' },
+  { id: 4, title: 'Language & Insurance', subtitle: 'Choose language & upload insurance (optional)' },
+  { id: 5, title: "You're all set!", subtitle: 'Review & confirm' },
+  { id: 6, title: 'Family Members', subtitle: 'Add your loved ones' },
 ];
 
 const PASTEL_STEPS = [
-  { bg: '#d7f576', text: '#0a1200' },   // lemon
-  { bg: '#c9bbff', text: '#1a0a40' },   // lavender
-  { bg: '#f7c9a3', text: '#3d1a00' },   // peach
-  { bg: '#a3e4d7', text: '#0a2a25' },   // mint
-  { bg: '#9bb4ff', text: '#0a1240' },   // sky
+  { bg: '#d7f576', text: '#0a1200' },
+  { bg: '#c9bbff', text: '#1a0a40' },
+  { bg: '#f7c9a3', text: '#3d1a00' },
+  { bg: '#9bb4ff', text: '#0a1240' },
+  { bg: '#a3e4d7', text: '#0a2a25' },
+  { bg: '#f28c8c', text: '#3d0000' },
+];
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'te', label: 'తెలుగు', native: 'Telugu' },
+  { code: 'hi', label: 'हिंदी', native: 'Hindi' },
+  { code: 'tinglish', label: 'Tinglish', native: 'Telugu + English' },
 ];
 
 const variants = {
@@ -35,21 +46,18 @@ const variants = {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [insuranceProcessing, setInsuranceProcessing] = useState(false);
+  const [insuranceData, setInsuranceData] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: '',
-    date_of_birth: '',
-    gender: '',
-    blood_group: '',
-    height: '',
+    full_name: '', date_of_birth: '', gender: '', blood_group: '', height: '',
   });
+  const [selectedLang, setSelectedLang] = useState(i18n.language || 'en');
 
-  // Skip onboarding if user already has a profile
-  // Use .list() — filter({ created_by }) causes 405 due to RLS
-  // 8-second timeout so checking never hangs forever
   useEffect(() => {
     const timeout = setTimeout(() => setChecking(false), 8000);
     base44.auth.me()
@@ -57,8 +65,11 @@ export default function Onboarding() {
         const raw = await base44.entities.Profile.list('-created_date', 1);
         const profiles = Array.isArray(raw) ? raw : [];
         clearTimeout(timeout);
-        if (profiles.length > 0) {
+        if (profiles.length > 0 && profiles[0]?.onboarding_completed) {
           navigate(createPageUrl('Dashboard'), { replace: true });
+        } else if (profiles.length > 0) {
+          setFormData(prev => ({ ...prev, full_name: profiles[0].full_name || '' }));
+          setChecking(false);
         } else {
           setChecking(false);
         }
@@ -75,281 +86,359 @@ export default function Onboarding() {
     );
   }
 
-  const go = (next) => {
-    setDir(next > step ? 1 : -1);
-    setStep(next);
+  const go = (next) => { setDir(next > step ? 1 : -1); setStep(next); };
+
+  const handleLangChange = (lang) => {
+    setSelectedLang(lang);
+    i18n.changeLanguage(lang);
+    localStorage.setItem('hf_lang', lang);
   };
 
-  const set = (k, v) => setFormData(f => ({ ...f, [k]: v }));
+  const handleInsuranceUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setInsuranceProcessing(true);
+    try {
+      const { url } = await uploadFile(file);
+      const result = await callAIVision({
+        prompt: `Extract ALL family member information from this health insurance document.
+Return JSON with this exact structure:
+{
+  "policy_number": "string",
+  "insurer": "string", 
+  "plan_name": "string",
+  "valid_from": "date",
+  "valid_to": "date",
+  "sum_insured": "number",
+  "members": [
+    {
+      "full_name": "string",
+      "relationship": "self|spouse|child|parent|sibling|other",
+      "date_of_birth": "YYYY-MM-DD or null",
+      "gender": "male|female|other",
+      "age": "number or null",
+      "blood_group": "string or null"
+    }
+  ]
+}
+Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".`,
+        file_urls: [url],
+        response_json_schema: true,
+        functionName: 'extractInsuranceData',
+      });
+      const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+      setInsuranceData(parsed);
+      if (parsed?.members?.[0]?.full_name && !formData.full_name) {
+        setFormData(prev => ({ ...prev, full_name: parsed.members[0].full_name }));
+      }
+    } catch (err) {
+      console.error('Insurance extraction failed:', err);
+    }
+    setInsuranceProcessing(false);
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await base44.entities.Profile.create({
-        full_name: formData.full_name?.trim(),
-        date_of_birth: formData.date_of_birth || null,
-        gender: formData.gender || null,
-        blood_group: formData.blood_group || null,
+      const profile = await base44.entities.Profile.create({
+        ...formData,
         relationship: 'self',
-        height: formData.height ? parseFloat(formData.height) : null,
+        height: formData.height ? parseFloat(formData.height) : undefined,
+        onboarding_completed: true,
+        plan_type: 'free',
+        subscription_status: 'inactive',
       });
-      // Go to family member step
-      go(5);
+
+      // If insurance data has family members, auto-create them
+      if (insuranceData?.members?.length > 1) {
+        for (const member of insuranceData.members) {
+          if (member.relationship === 'self') continue;
+          try {
+            await base44.entities.Profile.create({
+              full_name: member.full_name,
+              relationship: member.relationship || 'other',
+              date_of_birth: member.date_of_birth || undefined,
+              gender: member.gender || undefined,
+              blood_group: member.blood_group || undefined,
+            });
+          } catch {}
+        }
+        // Skip family step — already created from insurance
+        navigate(createPageUrl('Dashboard'), { replace: true });
+      } else {
+        go(6); // Go to manual family member step
+      }
     } catch (err) {
-      console.error(err);
-      alert('Failed to create profile. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Profile creation failed:', err);
     }
+    setLoading(false);
   };
 
-  const pastel = PASTEL_STEPS[(step - 1) % PASTEL_STEPS.length];
+  const canNext = () => {
+    if (step === 1) return formData.full_name.trim().length > 0;
+    return true;
+  };
+
+  const theme = PASTEL_STEPS[(step - 1) % PASTEL_STEPS.length];
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--hf-bg)' }}>
-
-      {/* Full-screen splash / hero top */}
-      <div
-        className="relative flex flex-col items-center justify-center px-6 pt-16 pb-10 text-center"
-        style={{ background: pastel.bg, minHeight: '38dvh', borderRadius: '0 0 2.5rem 2.5rem' }}
-      >
-        <motion.div
-          key={step + '-icon'}
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-          className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-4 shadow-lg"
-          style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(8px)' }}
-        >
-          {step === 1 && <Sparkles size={36} style={{ color: pastel.text }} />}
-          {step === 2 && <User size={36} style={{ color: pastel.text }} />}
-          {step === 3 && <Droplets size={36} style={{ color: pastel.text }} />}
-          {step === 4 && <Check size={36} style={{ color: pastel.text }} />}
-          {step === 5 && <Users size={36} style={{ color: pastel.text }} />}
-        </motion.div>
-
-        <motion.h1
-          key={step + '-title'}
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-2xl md:text-3xl font-black mb-1"
-          style={{ color: pastel.text }}
-        >
-          {step === 1 ? 'Welcome to HealthFlux' : STEPS[step - 1].title}
-        </motion.h1>
-        <motion.p
-          key={step + '-sub'}
-          initial={{ y: 8, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.06 }}
-          className="text-sm font-medium"
-          style={{ color: pastel.text, opacity: 0.7 }}
-        >
-          {STEPS[step - 1].subtitle}
-        </motion.p>
-
-        {/* Step dots */}
-        <div className="flex gap-2 mt-5">
-          {STEPS.map((s) => (
-            <div
-              key={s.id}
-              className="rounded-full transition-all duration-300"
-              style={{
-                width: step === s.id ? '28px' : '8px',
-                height: '8px',
-                background: step === s.id ? pastel.text : `${pastel.text}44`,
-              }}
-            />
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--hf-bg)', color: 'var(--hf-text)' }}>
+      {/* Progress */}
+      <div className="px-4 pt-6 pb-2">
+        <div className="flex gap-1.5">
+          {STEPS.map((s, i) => (
+            <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
+              style={{ background: i < step ? theme.bg : 'var(--hf-border)', opacity: i < step ? 1 : 0.3 }} />
           ))}
         </div>
+        <p className="text-xs mt-2" style={{ color: 'var(--hf-text-muted)' }}>
+          Step {step} of {STEPS.length} — {STEPS[step - 1]?.title}
+        </p>
       </div>
 
-      {/* Card content */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full">
-        <AnimatePresence custom={dir} mode="wait">
-          <motion.div
-            key={step}
-            custom={dir}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
-            className="rounded-3xl p-5 space-y-4"
-            style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)' }}
-          >
+      <div className="flex-1 px-4 pb-4 overflow-y-auto">
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div key={step} custom={dir} variants={variants}
+            initial="enter" animate="center" exit="exit"
+            transition={{ duration: 0.25 }} className="max-w-md mx-auto w-full">
+
+            {/* STEP 1: Name */}
             {step === 1 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold" style={{ color: 'var(--hf-text)' }}>Your Full Name *</Label>
-                  <Input
-                    placeholder="e.g., Arjun Sharma"
-                    value={formData.full_name}
-                    onChange={(e) => set('full_name', e.target.value)}
-                    className="h-12 rounded-2xl text-base"
-                    autoFocus
-                  />
+              <div className="space-y-6 pt-8">
+                <div className="text-center space-y-2">
+                  <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style={{ background: theme.bg }}>
+                    <Sparkles className="w-8 h-8" style={{ color: theme.text }} />
+                  </div>
+                  <h1 className="text-2xl font-bold">Welcome to HealthFlux</h1>
+                  <p style={{ color: 'var(--hf-text-muted)' }}>Your AI health companion. Let's set up your profile.</p>
                 </div>
-                <Button
-                  className="w-full h-12 rounded-2xl font-bold text-base active-press"
-                  style={{ background: pastel.bg, color: pastel.text }}
-                  disabled={!formData.full_name.trim()}
-                  onClick={() => go(2)}
-                >
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div>
+                  <Label>Full Name</Label>
+                  <Input value={formData.full_name} onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))}
+                    placeholder="Your full name" className="mt-1" />
+                </div>
               </div>
             )}
 
+            {/* STEP 2: About */}
             {step === 2 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold" style={{ color: 'var(--hf-text)' }}>Date of Birth *</Label>
-                  <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>Enter in format: DD-MM-YYYY (e.g., 15-08-1992)</p>
-                  <Input
-                    type="text"
-                    placeholder="DD-MM-YYYY"
-                    value={formData.date_of_birth_display || ''}
-                    onChange={(e) => {
-                      let raw = e.target.value.replace(/[^0-9]/g, '');
-                      // Auto-insert dashes after DD and MM
-                      let display = raw;
-                      if (raw.length > 2) display = raw.slice(0,2) + '-' + raw.slice(2);
-                      if (raw.length > 4) display = raw.slice(0,2) + '-' + raw.slice(2,4) + '-' + raw.slice(4,8);
-                      // Convert DD-MM-YYYY → YYYY-MM-DD for storage
-                      const parts = display.split('-');
-                      const isoValue = parts.length === 3 && parts[2].length === 4
-                        ? `${parts[2]}-${parts[1]}-${parts[0]}`
-                        : '';
-                      setFormData(f => ({ ...f, date_of_birth_display: display, date_of_birth: isoValue }));
-                    }}
-                    className="h-12 rounded-2xl text-lg tracking-widest font-mono"
-                    maxLength={10}
-                    inputMode="numeric"
-                    required
-                  />
+              <div className="space-y-4 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: theme.bg }}>
+                    <User className="w-5 h-5" style={{ color: theme.text }} />
+                  </div>
+                  <div><h2 className="font-bold text-lg">About You</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Basic details</p></div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold" style={{ color: 'var(--hf-text)' }}>Gender *</Label>
-                  <Select value={formData.gender} onValueChange={(v) => set('gender', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
+                <div>
+                  <Label>Date of Birth</Label>
+                  <Input type="date" value={formData.date_of_birth} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} className="mt-1" />
+                </div>
+                <div>
+                  <Label>Gender</Label>
+                  <Select value={formData.gender} onValueChange={v => setFormData(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other / Prefer not to say</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <Button variant="outline" className="h-12 rounded-2xl active-press" onClick={() => go(1)}>
-                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                  </Button>
-                  <Button
-                    className="h-12 rounded-2xl font-bold active-press"
-                    style={{ background: pastel.bg, color: pastel.text }}
-                    disabled={!formData.date_of_birth || !formData.gender}
-                    onClick={() => go(3)}
-                  >
-                    Continue <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             )}
 
+            {/* STEP 3: Health */}
             {step === 3 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold" style={{ color: 'var(--hf-text)' }}>Blood Group</Label>
-                  <Select value={formData.blood_group} onValueChange={(v) => set('blood_group', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl">
-                      <SelectValue placeholder="Select blood group" />
-                    </SelectTrigger>
+              <div className="space-y-4 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: theme.bg }}>
+                    <Heart className="w-5 h-5" style={{ color: theme.text }} />
+                  </div>
+                  <div><h2 className="font-bold text-lg">Health Info</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Optional but helpful</p></div>
+                </div>
+                <div>
+                  <Label>Blood Group</Label>
+                  <Select value={formData.blood_group} onValueChange={v => setFormData(p => ({ ...p, blood_group: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(g => (
+                      {['A+','A-','B+','B-','AB+','AB-','O+','O-','unknown'].map(g => (
                         <SelectItem key={g} value={g}>{g}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold" style={{ color: 'var(--hf-text)' }}>Height (cm)</Label>
-                  <Input
-                    type="number"
-                    placeholder="e.g., 170"
-                    value={formData.height}
-                    onChange={(e) => set('height', e.target.value)}
-                    className="h-12 rounded-2xl"
-                  />
-                </div>
-                <p className="text-xs text-center" style={{ color: 'var(--hf-text-muted)' }}>
-                  These fields are optional — you can fill them in your profile later.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-12 rounded-2xl active-press" onClick={() => go(2)}>
-                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                  </Button>
-                  <Button
-                    className="h-12 rounded-2xl font-bold active-press"
-                    style={{ background: pastel.bg, color: pastel.text }}
-                    onClick={() => go(4)}
-                  >
-                    Review <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
+                <div>
+                  <Label>Height (cm)</Label>
+                  <Input type="number" value={formData.height} onChange={e => setFormData(p => ({ ...p, height: e.target.value }))} placeholder="170" className="mt-1" />
                 </div>
               </div>
             )}
 
+            {/* STEP 4: Language + Insurance */}
             {step === 4 && (
-              <div className="space-y-4">
-                {/* Summary cards */}
-                {[
-                  { icon: <User size={16} />, label: 'Name', value: formData.full_name },
-                  { icon: <Heart size={16} />, label: 'Date of Birth', value: formData.date_of_birth_display || formData.date_of_birth },
-                  { icon: <Activity size={16} />, label: 'Gender', value: formData.gender },
-                  { icon: <Droplets size={16} />, label: 'Blood Group', value: formData.blood_group || '—' },
-                  { icon: <Ruler size={16} />, label: 'Height', value: formData.height ? `${formData.height} cm` : '—' },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-center gap-3 p-3 rounded-2xl"
-                    style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
-                    <span style={{ color: 'var(--hf-text-muted)' }}>{row.icon}</span>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--hf-text-muted)' }}>{row.label}</p>
-                      <p className="text-sm font-semibold capitalize" style={{ color: 'var(--hf-text)' }}>{row.value}</p>
-                    </div>
+              <div className="space-y-5 pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: theme.bg }}>
+                    <Globe className="w-5 h-5" style={{ color: theme.text }} />
                   </div>
-                ))}
+                  <div><h2 className="font-bold text-lg">Language & Insurance</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Choose your language</p></div>
+                </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <Button variant="outline" className="h-12 rounded-2xl active-press" onClick={() => go(3)}>
-                    <ArrowLeft className="mr-1 h-4 w-4" /> Back
-                  </Button>
-                  <Button
-                    className="h-12 rounded-2xl font-bold active-press"
-                    style={{ background: pastel.bg, color: pastel.text }}
-                    disabled={loading}
-                    onClick={handleSubmit}
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Setting up…
-                      </span>
-                    ) : (
-                      <><Check className="mr-1 h-4 w-4" /> Let's Go!</>
-                    )}
-                  </Button>
+                {/* Language Selection */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">App Language</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {LANGUAGES.map(lang => (
+                      <button key={lang.code} onClick={() => handleLangChange(lang.code)}
+                        className="p-3 rounded-xl border-2 text-left transition-all"
+                        style={{
+                          borderColor: selectedLang === lang.code ? theme.bg : 'var(--hf-border)',
+                          background: selectedLang === lang.code ? `${theme.bg}22` : 'transparent',
+                        }}>
+                        <span className="font-bold text-sm">{lang.label}</span>
+                        <br />
+                        <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>{lang.native}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Insurance Upload (Optional) */}
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium">Health Insurance Document</Label>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--hf-border)', color: 'var(--hf-text-muted)' }}>Optional</span>
+                  </div>
+                  <p className="text-xs mb-3" style={{ color: 'var(--hf-text-muted)' }}>
+                    Upload your family health insurance card/document. We'll auto-extract family member details and create profiles for everyone.
+                  </p>
+
+                  {!insuranceData && (
+                    <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed cursor-pointer hover:border-opacity-100 transition-all"
+                      style={{ borderColor: 'var(--hf-border)' }}>
+                      {insuranceProcessing ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin" style={{ color: theme.bg }} />
+                          <span className="text-sm font-medium">Extracting family details...</span>
+                          <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>AI is reading your document</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mb-2" style={{ color: 'var(--hf-text-muted)' }} />
+                          <span className="text-sm font-medium">Upload Insurance Document</span>
+                          <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>PDF, JPG, or PNG</span>
+                        </>
+                      )}
+                      <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={handleInsuranceUpload} disabled={insuranceProcessing} />
+                    </label>
+                  )}
+
+                  {insuranceData && (
+                    <div className="rounded-2xl p-4 space-y-3" style={{ background: `${theme.bg}15`, border: `1px solid ${theme.bg}40` }}>
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-5 h-5" style={{ color: theme.bg }} />
+                        <span className="font-bold text-sm">{insuranceData.insurer || 'Insurance'}</span>
+                        <Check className="w-4 h-4 ml-auto" style={{ color: '#22c55e' }} />
+                      </div>
+                      {insuranceData.plan_name && (
+                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Plan: {insuranceData.plan_name}</p>
+                      )}
+                      {insuranceData.sum_insured && (
+                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Sum Insured: ₹{Number(insuranceData.sum_insured).toLocaleString()}</p>
+                      )}
+                      <div className="pt-1">
+                        <p className="text-xs font-medium mb-1">Family Members Found ({insuranceData.members?.length || 0}):</p>
+                        {insuranceData.members?.map((m, i) => (
+                          <div key={i} className="flex items-center gap-2 py-1 text-xs">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                              style={{ background: PASTEL_STEPS[i % PASTEL_STEPS.length].bg, color: PASTEL_STEPS[i % PASTEL_STEPS.length].text }}>
+                              {m.full_name?.[0] || '?'}
+                            </div>
+                            <span className="font-medium">{m.full_name}</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'var(--hf-border)' }}>
+                              {m.relationship}
+                            </span>
+                            {m.age && <span style={{ color: 'var(--hf-text-muted)' }}>Age {m.age}</span>}
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={() => setInsuranceData(null)} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
+                        Remove & upload different document
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
+            {/* STEP 5: Review */}
             {step === 5 && (
+              <div className="space-y-4 pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: theme.bg }}>
+                    <Check className="w-5 h-5" style={{ color: theme.text }} />
+                  </div>
+                  <div><h2 className="font-bold text-lg">{t('common.done')}!</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Review your details</p></div>
+                </div>
+                <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--hf-card)' }}>
+                  {[
+                    ['Name', formData.full_name],
+                    ['DOB', formData.date_of_birth || '—'],
+                    ['Gender', formData.gender || '—'],
+                    ['Blood Group', formData.blood_group || '—'],
+                    ['Height', formData.height ? `${formData.height} cm` : '—'],
+                    ['Language', LANGUAGES.find(l => l.code === selectedLang)?.label || 'English'],
+                    ['Insurance', insuranceData ? `${insuranceData.insurer || 'Uploaded'} (${insuranceData.members?.length || 0} members)` : 'Not provided'],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex justify-between py-1.5 border-b last:border-0" style={{ borderColor: 'var(--hf-border)' }}>
+                      <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>{k}</span>
+                      <span className="text-sm font-medium">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 6: Family Members */}
+            {step === 6 && (
               <FamilyMemberSetup onDone={() => navigate(createPageUrl('Dashboard'), { replace: true })} />
             )}
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Navigation buttons */}
+      {step < 6 && (
+        <div className="px-4 pb-6 pt-2 max-w-md mx-auto w-full flex gap-3">
+          {step > 1 && (
+            <Button variant="outline" onClick={() => go(step - 1)} className="flex-1 h-12 rounded-xl">
+              <ArrowLeft className="mr-1 h-4 w-4" /> {t('common.back')}
+            </Button>
+          )}
+          {step < 5 && (
+            <Button onClick={() => go(step + 1)} disabled={!canNext()}
+              className="flex-1 h-12 rounded-xl font-semibold"
+              style={{ background: theme.bg, color: theme.text }}>
+              {t('common.next')} <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          )}
+          {step === 5 && (
+            <Button onClick={handleSubmit} disabled={loading}
+              className="flex-1 h-12 rounded-xl font-semibold"
+              style={{ background: theme.bg, color: theme.text }}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Setting up…
+                </span>
+              ) : (
+                <><Check className="mr-1 h-4 w-4" /> {insuranceData?.members?.length > 1 ? 'Create All Profiles' : "Let's Go!"}</>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

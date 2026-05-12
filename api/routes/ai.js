@@ -353,3 +353,16 @@ router.post('/generate-image', async (req, res) => {
 });
 
 export default router;
+
+// ─── Extract Insurance Data ──────────────────────────────────────
+router.post('/extract-insurance', async (req, res) => {
+  try {
+    const { imageUrl, fileUrl } = req.body;
+    const system = `You are a health insurance document specialist. Extract ALL family member information accurately.`;
+    const user = `Extract complete family member data from this health insurance document. Return structured JSON with: policy_number, insurer, plan_name, valid_from, valid_to, sum_insured, and a members array with full_name, relationship, date_of_birth, gender, age, blood_group for each person listed.`;
+    const result = await callAIJSON('extractInsuranceData', system, user, { imageUrls: [imageUrl || fileUrl] });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});

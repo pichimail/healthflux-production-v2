@@ -1,14 +1,13 @@
 /**
  * AccountHub — merges: Settings, User Analytics, Export, Share/CareCircle (management side)
  */
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Settings from './Settings';
+import UserAnalytics from './UserAnalytics';
+import ExportReports from './ExportReports';
+import Subscription from './Subscription';
 import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 import { useRoutedTab } from '@/hooks/use-routed-tab';
-
-const Subscription = lazy(() => import('./Subscription'));
-const UserAnalytics = lazy(() => import('./UserAnalytics'));
-const ExportReports = lazy(() => import('./ExportReports'));
 
 const TABS = [
   { key: 'settings', label: '⚙️ Settings' },
@@ -55,20 +54,12 @@ export default function AccountHub() {
         </div>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center min-h-[40vh]" style={{ color: 'var(--hf-text-muted)' }}>
-            Loading account section...
-          </div>
-        }
-      >
-        <div>
-          {activeTab === 'settings' && <Settings />}
-          {activeTab === 'subscription' && <Subscription />}
-          {activeTab === 'analytics' && <UserAnalytics />}
-          {activeTab === 'export' && <ExportReports />}
-        </div>
-      </Suspense>
+      <div>
+        {activeTab === 'settings' && <Settings />}
+        {activeTab === 'subscription' && <Subscription />}
+        {activeTab === 'analytics' && <UserAnalytics />}
+        {activeTab === 'export' && <ExportReports />}
+      </div>
     </div>);
 
 }

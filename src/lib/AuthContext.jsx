@@ -13,10 +13,6 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import db from './db';
 
 const AuthContext = createContext(null);
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAIL || import.meta.env.ADMIN_EMAIL || '')
-  .split(',')
-  .map((email) => email.trim().toLowerCase())
-  .filter(Boolean);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -59,14 +55,12 @@ export function AuthProvider({ children }) {
 
   function formatUser(u) {
     if (!u) return null;
-    const email = u.email || u.user_metadata?.email || '';
-    const isEnvAdmin = ADMIN_EMAILS.includes(String(email).toLowerCase());
     return {
       id: u.id,
-      email,
+      email: u.email || u.user_metadata?.email,
       full_name: u.user_metadata?.full_name || u.user_metadata?.name || '',
       avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
-      role: isEnvAdmin ? 'admin' : (u.user_metadata?.role || 'user'),
+      role: u.user_metadata?.role || 'user',
     };
   }
 

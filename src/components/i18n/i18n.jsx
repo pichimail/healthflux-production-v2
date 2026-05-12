@@ -13,6 +13,7 @@ const en = {
   wellness: { title: 'Wellness', goals: 'Goals', achievements: 'Achievements', streak: 'Streak', points: 'Points', level: 'Level', addGoal: 'Add Goal', logProgress: 'Log Progress' },
   care: { title: 'Care Hub', profiles: 'Profiles', addMember: 'Add Family Member', careCircle: 'Care Circle', telehealth: 'Telehealth', bookConsult: 'Book Consultation' },
   account: { title: 'Account', profile: 'Profile', preferences: 'Preferences', subscription: 'Subscription', security: 'Security', language: 'Language', theme: 'Theme', notifications: 'Notifications' },
+  onboarding: { welcome: 'Welcome to HealthFlux', name: 'Full Name', dob: 'Date of Birth', gender: 'Gender', bloodGroup: 'Blood Group', height: 'Height', langInsurance: 'Language & Insurance', chooseLanguage: 'App Language', insuranceDoc: 'Health Insurance Document', optional: 'Optional', insuranceHelp: 'Upload your family health insurance card/document. We\'ll auto-extract family member details.', extracting: 'Extracting family details...', aiReading: 'AI is reading your document', uploadInsurance: 'Upload Insurance Document', membersFound: 'Family Members Found', review: 'Review', letsGo: "Let's Go!", createAllProfiles: 'Create All Profiles', settingUp: 'Setting up...', skip: 'Skip', step: 'Step', of: 'of' },
   errors: { loadFailed: 'Failed to load data', saveFailed: 'Failed to save', networkError: 'Network error', unauthorized: 'Unauthorized' },
 };
 
@@ -28,6 +29,7 @@ const te = {
   wellness: { title: 'వెల్నెస్', goals: 'లక్ష్యాలు', achievements: 'విజయాలు', streak: 'స్ట్రీక్', points: 'పాయింట్లు', level: 'స్థాయి', addGoal: 'లక్ష్యం జోడించు', logProgress: 'పురోగతి నమోదు' },
   care: { title: 'కేర్ హబ్', profiles: 'ప్రొఫైల్లు', addMember: 'కుటుంబ సభ్యుని జోడించు', careCircle: 'కేర్ సర్కిల్', telehealth: 'టెలిహెల్త్', bookConsult: 'సంప్రదింపు బుక్ చేయి' },
   account: { title: 'అకౌంట్', profile: 'ప్రొఫైల్', preferences: 'ప్రాధాన్యతలు', subscription: 'సభ్యత్వం', security: 'భద్రత', language: 'భాష', theme: 'థీమ్', notifications: 'నోటిఫికేషన్లు' },
+  onboarding: { welcome: 'HealthFlux కి స్వాగతం', name: 'పూర్తి పేరు', dob: 'పుట్టిన తేదీ', gender: 'లింగం', bloodGroup: 'రక్త గ్రూపు', height: 'ఎత్తు', langInsurance: 'భాష & భీమా', chooseLanguage: 'యాప్ భాష', insuranceDoc: 'ఆరోగ్య భీమా పత్రం', optional: 'ఐచ్ఛికం', insuranceHelp: 'మీ కుటుంబ ఆరోగ్య భీమా కార్డు/పత్రం అప్‌లోడ్ చేయండి. మేము స్వయంచాలకంగా కుటుంబ సభ్యుల వివరాలను సేకరిస్తాము.', extracting: 'కుటుంబ వివరాలు సేకరిస్తోంది...', aiReading: 'AI మీ పత్రాన్ని చదువుతోంది', uploadInsurance: 'భీమా పత్రం అప్‌లోడ్', membersFound: 'కుటుంబ సభ్యులు కనుగొనబడ్డారు', review: 'సమీక్ష', letsGo: 'ప్రారంభించు!', createAllProfiles: 'అన్ని ప్రొఫైల్లు సృష్టించు', settingUp: 'సెటప్ అవుతోంది...', skip: 'దాటవేయి', step: 'స్టెప్', of: 'లో' },
   errors: { loadFailed: 'డేటా లోడ్ విఫలమైంది', saveFailed: 'సేవ్ విఫలమైంది', networkError: 'నెట్‌వర్క్ లోపం', unauthorized: 'అనధికారిక' },
 };
 
@@ -43,6 +45,7 @@ const hi = {
   wellness: { title: 'वेलनेस', goals: 'लक्ष्य', achievements: 'उपलब्धियां', streak: 'स्ट्रीक', points: 'पॉइंट्स', level: 'स्तर', addGoal: 'लक्ष्य जोड़ें', logProgress: 'प्रगति दर्ज करें' },
   care: { title: 'केयर हब', profiles: 'प्रोफ़ाइल', addMember: 'परिवार सदस्य जोड़ें', careCircle: 'केयर सर्कल', telehealth: 'टेलीहेल्थ', bookConsult: 'परामर्श बुक करें' },
   account: { title: 'अकाउंट', profile: 'प्रोफ़ाइल', preferences: 'प्राथमिकताएं', subscription: 'सदस्यता', security: 'सुरक्षा', language: 'भाषा', theme: 'थीम', notifications: 'सूचनाएं' },
+  onboarding: { welcome: 'HealthFlux में स्वागत है', name: 'पूरा नाम', dob: 'जन्म तिथि', gender: 'लिंग', bloodGroup: 'रक्त समूह', height: 'ऊंचाई', langInsurance: 'भाषा और बीमा', chooseLanguage: 'ऐप भाषा', insuranceDoc: 'स्वास्थ्य बीमा दस्तावेज़', optional: 'वैकल्पिक', insuranceHelp: 'अपना परिवार स्वास्थ्य बीमा कार्ड/दस्तावेज़ अपलोड करें। हम स्वचालित रूप से परिवार के सदस्यों का विवरण निकालेंगे।', extracting: 'परिवार का विवरण निकाल रहे हैं...', aiReading: 'AI आपका दस्तावेज़ पढ़ रहा है', uploadInsurance: 'बीमा दस्तावेज़ अपलोड करें', membersFound: 'परिवार के सदस्य मिले', review: 'समीक्षा', letsGo: 'शुरू करें!', createAllProfiles: 'सभी प्रोफ़ाइल बनाएं', settingUp: 'सेटअप हो रहा है...', skip: 'छोड़ें', step: 'चरण', of: 'में से' },
   errors: { loadFailed: 'डेटा लोड विफल', saveFailed: 'सेव विफल', networkError: 'नेटवर्क त्रुटि', unauthorized: 'अनधिकृत' },
 };
 
@@ -58,6 +61,7 @@ const tinglish = {
   wellness: { title: 'Wellness', goals: 'Goals', achievements: 'Achievements', streak: 'Streak', points: 'Points', level: 'Level', addGoal: 'Goal add cheyyi', logProgress: 'Progress log cheyyi' },
   care: { title: 'Care Hub', profiles: 'Profiles', addMember: 'Family member add cheyyi', careCircle: 'Care Circle', telehealth: 'Telehealth', bookConsult: 'Consultation book cheyyi' },
   account: { title: 'Account', profile: 'Profile', preferences: 'Preferences', subscription: 'Subscription', security: 'Security', language: 'Language', theme: 'Theme', notifications: 'Notifications' },
+  onboarding: { welcome: 'HealthFlux ki Welcome', name: 'Full Name', dob: 'Date of Birth', gender: 'Gender', bloodGroup: 'Blood Group', height: 'Height', langInsurance: 'Language & Insurance', chooseLanguage: 'App Language', insuranceDoc: 'Health Insurance Document', optional: 'Optional', insuranceHelp: 'Mee family health insurance card/document upload cheyandi. Meemu automatically family members details extract chestam.', extracting: 'Family details extract avutundi...', aiReading: 'AI mee document chaduvutundi', uploadInsurance: 'Insurance Document Upload cheyyi', membersFound: 'Family Members Dorikaru', review: 'Review', letsGo: 'Start cheddham!', createAllProfiles: 'Anni Profiles Create cheyyi', settingUp: 'Setup avutundi...', skip: 'Skip cheyyi', step: 'Step', of: 'lo' },
   errors: { loadFailed: 'Data load kaaledhu', saveFailed: 'Save kaaledhu', networkError: 'Network error', unauthorized: 'Permission ledu' },
 };
 

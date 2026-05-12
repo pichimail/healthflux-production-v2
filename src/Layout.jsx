@@ -25,7 +25,31 @@ import { Drawer } from 'vaul';
 import { getRouteById } from '@/lib/routes';
 import { WidgetCustomizer, loadWidgets, saveWidgets } from '@/components/dashboard/WidgetCustomizer';
 
+// Onboarding gate — redirect users who haven't completed onboarding
+function useOnboardingGate() {
+  const [checked, setChecked] = React.useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const profiles = await base44.entities.Profile.list('-created_date', 1);
+        const arr = Array.isArray(profiles) ? profiles : [];
+        if (arr.length === 0 || !arr[0]?.onboarding_completed) {
+          setNeedsOnboarding(true);
+        }
+      } catch {
+        setNeedsOnboarding(true);
+      }
+      setChecked(true);
+    })();
+  }, []);
+
+  return { checked, needsOnboarding };
+}
+
 const NO_LAYOUT_PAGES = ['Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy'];
+const ONBOARDING_EXEMPT = [...NO_LAYOUT_PAGES, ...ADMIN_PAGES, 'PublicShare'];
 
 // ── Global quick-nav chips (shown on all user pages) ──
 const GLOBAL_CHIPS = [
@@ -646,13 +670,39 @@ export default function Layout({ children, currentPageName }) {
           <FeatureUnlockedBanner />
           <ActiveProfileProvider>
             <FABActionProvider>
-              <UserLayout currentPageName={currentPageName}>
-                {children}
-              </UserLayout>
+              <OnboardingGate currentPageName={currentPageName}>
+                <UserLayout currentPageName={currentPageName}>
+                  {children}
+                </UserLayout>
+              </OnboardingGate>
             </FABActionProvider>
           </ActiveProfileProvider>
         </FeatureFlagsProvider>
       </ThemeProvider>
     </I18nProvider>
   );
+}
+
+// Prevents non-onboarded users from seeing the app
+function OnboardingGate({ children, currentPageName }) {
+  const navigate = useNavigate();
+  const { checked, needsOnboarding } = useOnboardingGate();
+
+  React.useEffect(() => {
+    if (checked && needsOnboarding && !ONBOARDING_EXEMPT.includes(currentPageName)) {
+      navigate(createPageUrl('Onboarding'), { replace: true });
+    }
+  }, [checked, needsOnboarding, currentPageName]);
+
+  if (!checked) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'var(--hf-bg)' }}>
+        <div className="w-8 h-8 border-2 border-[#d7f576] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (needsOnboarding && !ONBOARDING_EXEMPT.includes(currentPageName)) return null;
+
+  return <>{children}</>;
 }
