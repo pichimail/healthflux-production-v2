@@ -110,7 +110,6 @@ import WellnessHub from './pages/WellnessHub';
 import WellnessInsights from './pages/WellnessInsights';
 import Subscription from './pages/Subscription';
 import MarketingHome from './pages/MarketingHome';
-import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -182,5 +181,4 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Landing",
     Pages: PAGES,
-    Layout: __Layout,
 };
