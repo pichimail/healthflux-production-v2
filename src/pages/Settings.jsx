@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Bell, Mail, Activity, Pill, Calendar, Sparkles, AlertTriangle, Trash2, ChevronRight, Loader2, Sun, Moon, Monitor, Heart, Droplets, Footprints, Globe } from 'lucide-react';
+import { Bell, Mail, Activity, Pill, Calendar, Sparkles, AlertTriangle, Trash2, ChevronRight, Loader2, Sun, Moon, Heart, Droplets, Footprints, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConnectedDevicesSection from '@/components/ConnectedDevicesSection';
 import { useActiveProfile } from '@/components/ActiveProfileContext';

@@ -2,7 +2,7 @@
  * AIAdapter — Production (OpenRouter-backed via API routes)
  * Replaces all Base44 InvokeLLM calls with /api/ai/* routes
  */
-import { callAI, callAIVision, extractDataFromFile, uploadFile, sendEmail } from '@/components/utils/aiService';
+import { callAI, extractDataFromFile, sendEmail } from '@/components/utils/aiService';
 
 const AIAdapter = {
   async invokeLLM(prompt, opts = {}) {

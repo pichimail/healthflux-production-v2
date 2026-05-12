@@ -3,7 +3,6 @@
  */
 import React, { useState } from 'react';
 import { Leaf, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 import { callAI } from '@/components/utils/aiService';
 import { toast } from 'sonner';
 

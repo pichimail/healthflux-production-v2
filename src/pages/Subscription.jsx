@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Clock, XCircle, Zap, Shield, Star, ChevronRight, RotateCcw, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Zap, Star, RotateCcw, ArrowUpCircle, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 

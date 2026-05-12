@@ -34,6 +34,218 @@ Rules:
 9. Mention ambiguities explicitly instead of guessing.
 10. Never include unrelated prose when structured output is requested.`;
 
+const FEATURE_PROMPT_PACK = {
+  extractInsuranceData: {
+    mode: 'vision',
+    prompt: `Extract policy and covered member details from health-insurance documents with high fidelity.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        policy_number: { type: ['string', 'null'] },
+        insurer: { type: ['string', 'null'] },
+        plan_name: { type: ['string', 'null'] },
+        valid_from: { type: ['string', 'null'] },
+        valid_to: { type: ['string', 'null'] },
+        sum_insured: { type: ['number', 'null'] },
+        members: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              full_name: { type: 'string' },
+              relationship: { type: 'string', enum: ['self', 'spouse', 'child', 'parent', 'sibling', 'other'] },
+              date_of_birth: { type: ['string', 'null'] },
+              gender: { type: ['string', 'null'], enum: ['male', 'female', 'other', null] },
+              age: { type: ['number', 'null'] },
+              blood_group: { type: ['string', 'null'] }
+            },
+            required: ['full_name', 'relationship']
+          }
+        },
+        plain_language_summary: { type: ['string', 'null'] }
+      },
+      required: ['members']
+    }
+  },
+  ocrLabReport: {
+    mode: 'vision',
+    prompt: `Extract structured lab values exactly from the report.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        lab_name: { type: ['string', 'null'] },
+        test_date: { type: ['string', 'null'] },
+        tests: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              test_name: { type: 'string' },
+              value: { type: ['string', 'number'] },
+              unit: { type: ['string', 'null'] },
+              reference_range: { type: ['string', 'null'] },
+              status: { type: ['string', 'null'], enum: ['normal', 'high', 'low', 'critical', null] }
+            },
+            required: ['test_name', 'value']
+          }
+        },
+        plain_language_summary: { type: ['string', 'null'] }
+      },
+      required: ['tests']
+    }
+  },
+  extractMedicationImage: {
+    mode: 'vision',
+    prompt: `Extract medication and prescription fields from images/PDFs.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        medications: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              medication_name: { type: 'string' },
+              dosage: { type: ['string', 'null'] },
+              frequency: { type: ['string', 'null'] },
+              duration: { type: ['string', 'null'] },
+              instructions: { type: ['string', 'null'] }
+            },
+            required: ['medication_name']
+          }
+        },
+        prescribing_doctor: { type: ['string', 'null'] },
+        plain_language_summary: { type: ['string', 'null'] }
+      },
+      required: ['medications']
+    }
+  },
+  nutritionImageAnalysis: {
+    mode: 'vision',
+    prompt: `Identify foods and estimate nutrition with uncertainty-aware output.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        food_items: { type: 'array', items: { type: 'string' } },
+        calories: { type: ['number', 'null'] },
+        protein_g: { type: ['number', 'null'] },
+        carbs_g: { type: ['number', 'null'] },
+        fat_g: { type: ['number', 'null'] },
+        fiber_g: { type: ['number', 'null'] },
+        plain_language_summary: { type: ['string', 'null'] }
+      }
+    }
+  },
+  analyzeSkinImage: {
+    mode: 'vision',
+    prompt: `Analyze visible skin findings and triage urgency safely.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        conditions_detected: { type: 'array', items: { type: 'string' } },
+        severity: { type: ['string', 'null'], enum: ['clear', 'mild', 'moderate', 'severe', null] },
+        triage_advice: { type: ['string', 'null'] },
+        see_doctor_urgency: { type: ['string', 'null'], enum: ['no', 'within_month', 'within_week', 'immediately', null] },
+        plain_language_summary: { type: ['string', 'null'] }
+      }
+    }
+  },
+  analyzeMedicalImage: {
+    mode: 'vision',
+    prompt: `Summarize medical imaging findings in plain language and structured terms.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        plain_summary: { type: ['string', 'null'] },
+        clinical_findings: { type: ['string', 'null'] },
+        anomalies: { type: 'array', items: { type: 'string' } },
+        risk_level: { type: ['string', 'null'], enum: ['low', 'moderate', 'high', 'critical', null] },
+        follow_up_actions: { type: 'array', items: { type: 'string' } }
+      }
+    }
+  },
+  documentAnalysis: {
+    mode: 'vision',
+    prompt: `Extract and summarize medical documents for non-technical users.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        summary: { type: 'string' },
+        key_findings: { type: 'array', items: { type: 'string' } },
+        action_items: { type: 'array', items: { type: 'string' } },
+        document_type: { type: 'string', enum: ['lab_report', 'prescription', 'imaging', 'discharge_summary', 'consultation', 'vaccination', 'insurance', 'other'] },
+        ai_tags: { type: 'array', items: { type: 'string' } },
+        plain_language_summary: { type: ['string', 'null'] }
+      },
+      required: ['summary']
+    }
+  },
+  checkDrugInteractions: {
+    mode: 'text',
+    prompt: `Return concise, clinically cautious interaction analysis in JSON.`,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        overall_risk: { type: ['string', 'null'], enum: ['low', 'moderate', 'high', 'critical', null] },
+        interactions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              drug1: { type: 'string' },
+              drug2: { type: 'string' },
+              severity: { type: ['string', 'null'] },
+              description: { type: ['string', 'null'] },
+              recommendation: { type: ['string', 'null'] }
+            },
+            required: ['drug1', 'drug2']
+          }
+        },
+        plain_language_summary: { type: ['string', 'null'] }
+      }
+    }
+  }
+};
+
+function buildReadableSummary(result) {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return result;
+  if (result.plain_language_summary || result.plain_summary || result.summary) return result;
+
+  const lines = [];
+  if (result.insurer || result.policy_number) {
+    lines.push(`Insurance: ${result.insurer || 'Unknown insurer'} (${result.policy_number || 'policy number unavailable'}).`);
+  }
+  if (Array.isArray(result.members) && result.members.length) {
+    lines.push(`Family members detected: ${result.members.map((m) => m.full_name).filter(Boolean).join(', ')}.`);
+  }
+  if (Array.isArray(result.tests) && result.tests.length) {
+    lines.push(`Lab report extracted with ${result.tests.length} test values.`);
+  }
+  if (Array.isArray(result.medications) && result.medications.length) {
+    lines.push(`Medication list extracted with ${result.medications.length} item(s).`);
+  }
+  if (result.calories != null) {
+    lines.push(`Estimated nutrition: about ${result.calories} kcal for this meal.`);
+  }
+  if (result.severity || result.triage_advice) {
+    lines.push(`Skin/imaging assessment: ${result.severity || 'unspecified severity'}. ${result.triage_advice || ''}`.trim());
+  }
+  if (!lines.length) return result;
+
+  return { ...result, plain_language_summary: lines.join(' ') };
+}
+
 async function getAuthHeaders() {
   const headers = { 'Content-Type': 'application/json' };
   try {
@@ -69,13 +281,19 @@ export async function callAI({
   add_context_from_internet,
   functionName,
 } = {}) {
+  const feature = FEATURE_PROMPT_PACK[functionName || ''];
+  const mergedSystem = [GLOBAL_TEXT_SYSTEM_PROMPT, feature?.mode === 'text' ? feature.prompt : '', systemPrompt || '']
+    .filter(Boolean)
+    .join('\n\n');
+  const effectiveSchema = responseJsonSchema || response_json_schema || feature?.schema;
+
   return callRoute('invoke', {
     prompt,
-    system_prompt: systemPrompt || GLOBAL_TEXT_SYSTEM_PROMPT,
-    response_json_schema: responseJsonSchema || response_json_schema,
+    system_prompt: mergedSystem,
+    response_json_schema: effectiveSchema,
     add_context_from_internet: addContext ?? add_context_from_internet,
     function_name: functionName || 'default',
-  });
+  }).then((res) => buildReadableSummary(res));
 }
 
 // ── Vision AI call ──
@@ -88,13 +306,19 @@ export async function callAIVision({
   response_json_schema,
   functionName,
 } = {}) {
+  const feature = FEATURE_PROMPT_PACK[functionName || ''];
+  const mergedSystem = [GLOBAL_VISION_SYSTEM_PROMPT, feature?.mode === 'vision' ? feature.prompt : '', systemPrompt || '']
+    .filter(Boolean)
+    .join('\n\n');
+  const effectiveSchema = responseJsonSchema || response_json_schema || feature?.schema;
+
   return callRoute('vision', {
     prompt,
-    system_prompt: systemPrompt || GLOBAL_VISION_SYSTEM_PROMPT,
+    system_prompt: mergedSystem,
     file_urls: fileUrls || file_urls || [],
-    response_json_schema: responseJsonSchema || response_json_schema,
+    response_json_schema: effectiveSchema,
     function_name: functionName || 'vision',
-  });
+  }).then((res) => buildReadableSummary(res));
 }
 
 // ── Extract data from file ──

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, User, Heart, Droplets, Ruler, ArrowRight, ArrowLeft, Check, Sparkles, Users, Globe, FileText, Upload, Loader2, Shield } from 'lucide-react';
+import { User, Heart, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Upload, Loader2, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';

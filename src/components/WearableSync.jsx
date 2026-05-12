@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { useActiveProfile } from './ActiveProfileContext';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw, Link2, Unlink, Smartphone, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Link2, Unlink, Smartphone } from 'lucide-react';
 import { isHealthSyncAvailable, requestHealthPermissions, readVitals } from '@/lib/healthBridge';
 
 const PROVIDERS = [

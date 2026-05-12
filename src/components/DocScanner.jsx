@@ -5,13 +5,12 @@
  * - Multi-page stacking
  * - Upload all for AI analysis → auto-save to Docs
  */
-import React, { useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { callAIVision, uploadFile } from '@/components/utils/aiService';
+import { callAIVision } from '@/components/utils/aiService';
 import {
   X, Camera, Upload, RotateCw, ChevronLeft, ChevronRight,
-  Trash2, CheckCircle, Plus, Loader2, Sun, Contrast, ScanLine
+  Trash2, CheckCircle, Loader2, ScanLine
 } from 'lucide-react';
 import Haptics from '@/components/utils/haptics';
 import { useQueryClient } from '@tanstack/react-query';

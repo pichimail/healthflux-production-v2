@@ -6,7 +6,7 @@
  */
 import React, { useRef, useState } from 'react';
 import { Drawer } from 'vaul';
-import { Camera, Utensils, Scan, Brain, FileText, Loader2, X, CheckCircle, ChevronRight } from 'lucide-react';
+import { Camera, Loader2, X, CheckCircle, ChevronRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import Haptics from '@/components/utils/haptics';

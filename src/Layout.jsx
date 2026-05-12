@@ -14,11 +14,10 @@ import { FABActionProvider, useFABDispatch } from './lib/FABContext';
 import QuickAddFAB from './components/dashboard/QuickAddFAB';
 import FluxAssistant from './components/FluxAssistant';
 import {
-  LayoutDashboard, Activity, Bot, X,
+  LayoutDashboard, Activity, Bot,
   Settings, Shield, LogOut, Check, Plus,
   Stethoscope, Leaf, User, ChevronLeft, Sun, Moon, ChevronDown,
-  Zap, BarChart3, TestTube, FileText, TrendingUp, Target, Utensils, Sparkles,
-  LayoutGrid
+  Zap
 } from 'lucide-react';
 import { Drawer } from 'vaul';
 

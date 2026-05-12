@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useActiveProfile } from '../ActiveProfileContext';
 import { toast } from 'sonner';
-import { RefreshCw, Loader2, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw, Loader2, Smartphone, CheckCircle2 } from 'lucide-react';
 import { isHealthSyncAvailable, requestHealthPermissions, readVitals } from '@/lib/healthBridge';
 
 const PLATFORMS = [

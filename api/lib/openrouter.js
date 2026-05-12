@@ -36,6 +36,9 @@ export const MODEL_MAP = {
   documentOCR:            'google/gemini-2.5-pro-preview',
   enhancedDocProcessor:   'google/gemini-2.5-pro-preview',
   enhancedAIProcessing:   'google/gemini-2.5-pro-preview',
+  extractInsuranceData:   'google/gemini-2.5-pro-preview',
+  documentAnalysis:       'google/gemini-2.5-pro-preview',
+  ocrLabReport:           'google/gemini-2.5-pro-preview',
 
   // Gemini 2.0 Flash — fast, cheap
   aiDocumentSearch:       'google/gemini-2.0-flash-001',
@@ -45,6 +48,8 @@ export const MODEL_MAP = {
   extractFamilyProfiles:  'google/gemini-2.0-flash-001',
   parseVoiceLog:          'google/gemini-2.0-flash-001',
   semanticDocumentSearch: 'google/gemini-2.0-flash-001',
+  default:                'google/gemini-2.0-flash-001',
+  vision:                 'google/gemini-2.5-pro-preview',
 };
 
 /**

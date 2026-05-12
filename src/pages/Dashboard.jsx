@@ -5,9 +5,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Activity, FileText, Pill, TrendingUp, Plus, X,
-  Brain, Sparkles, TestTube, Stethoscope,
-  Leaf, Check, Target, BarChart3, AlertTriangle } from
+  Activity, Pill, TrendingUp, Plus, X,
+  Brain, TestTube,
+  Leaf, BarChart3, AlertTriangle } from
 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';

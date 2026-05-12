@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { callAIVision, uploadFile } from '@/components/utils/aiService';
 import {
   X, Mic, MicOff, Plus, Send, FileText, Camera, Image,
-  CheckCircle, XCircle, Loader2, Bot, User, Paperclip
+  CheckCircle, XCircle, Loader2, Bot, User
 } from 'lucide-react';
 import Haptics from '@/components/utils/haptics';
 import { useActiveProfile } from '@/components/ActiveProfileContext';
@@ -154,13 +154,13 @@ export default function FluxAssistant({ open, onClose }) {
     setLoading(false);
   };
 
-  const handleFileAttach = async (file, source) => {
+  const handleFileAttach = async (file) => {
     if (!file) return;
     setAttachMenuOpen(false);
     const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
 
     // Show user message with file
-    const userMsgId = addMsg({
+    addMsg({
       role: 'user',
       content: `📎 ${file.name}`,
       imageUrl: previewUrl,
@@ -187,7 +187,7 @@ export default function FluxAssistant({ open, onClose }) {
       analysisResult = { summary: res, category: 'document', key_findings: [] };
     }
 
-    const summary = analysisResult.summary || 'File analyzed.';
+    const summary = analysisResult.plain_language_summary || analysisResult.plain_summary || analysisResult.summary || 'File analyzed.';
     const findings = (analysisResult.key_findings || []).slice(0, 3);
 
     const replyContent = `I've analyzed your ${analysisResult.category || 'file'}:\n\n${summary}${findings.length ? '\n\n' + findings.map(f => `• ${f}`).join('\n') : ''}`;
@@ -221,7 +221,7 @@ export default function FluxAssistant({ open, onClose }) {
       file_url,
       file_name: name,
       document_date: now.toISOString().slice(0, 10),
-      ai_summary: analysisResult.summary || '',
+      ai_summary: analysisResult.plain_language_summary || analysisResult.plain_summary || analysisResult.summary || '',
       key_findings: analysisResult.key_findings || [],
       action_items: analysisResult.action_items || [],
       ai_tags: [...(analysisResult.ai_tags || []), 'Flux Chat'],
