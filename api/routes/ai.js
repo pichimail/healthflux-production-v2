@@ -8,8 +8,24 @@
 
 import express from 'express';
 import { callAI, callAIJSON } from '../lib/openrouter.js';
+import pdfParse from 'pdf-parse';
 
 const router = express.Router();
+
+async function fetchUrlBytes(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch document (${res.status})`);
+  }
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  const bytes = Buffer.from(await res.arrayBuffer());
+  return { bytes, contentType };
+}
+
+function looksLikePdf(bytes) {
+  if (!bytes || bytes.length < 4) return false;
+  return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
+}
 
 // Middleware: require auth session
 function requireAuth(req, res, next) {
@@ -42,9 +58,41 @@ router.post('/invoke', async (req, res) => {
 router.post('/vision', async (req, res) => {
   try {
     const { prompt, system_prompt, file_urls, response_json_schema, function_name } = req.body;
+    const urls = Array.isArray(file_urls) ? file_urls.filter(Boolean) : [];
+    const firstUrl = urls[0];
+
+    if (firstUrl) {
+      const { bytes, contentType } = await fetchUrlBytes(firstUrl);
+      const pdfByType = contentType.includes('application/pdf');
+      const pdfByName = firstUrl.toLowerCase().includes('.pdf');
+      const isPdf = pdfByType || pdfByName || looksLikePdf(bytes);
+
+      if (isPdf) {
+        const parsed = await pdfParse(bytes);
+        const extractedText = (parsed?.text || '').replace(/\s+/g, ' ').trim();
+        if (!extractedText) {
+          return res.status(400).json({ error: 'Could not extract readable text from PDF.' });
+        }
+
+        const pdfPrompt = [
+          prompt || 'Extract structured details from this health insurance document.',
+          '',
+          'DOCUMENT_TEXT_START',
+          extractedText.slice(0, 120000),
+          'DOCUMENT_TEXT_END',
+        ].join('\n');
+
+        const result = await callAI(function_name || 'vision', system_prompt || '', pdfPrompt, {
+          jsonMode: !!response_json_schema,
+          maxTokens: 4096,
+        });
+        return res.json(result);
+      }
+    }
+
     const opts = {
       jsonMode: !!response_json_schema,
-      imageUrls: file_urls || [],
+      imageUrls: urls,
       maxTokens: 4096,
     };
     const result = await callAI(function_name || 'vision', system_prompt || '', prompt, opts);

@@ -55,6 +55,7 @@ export default function Onboarding() {
   const [insuranceData, setInsuranceData] = useState(null);
   const [insuranceUpload, setInsuranceUpload] = useState(null);
   const [insuranceError, setInsuranceError] = useState('');
+  const [insuranceReviewed, setInsuranceReviewed] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '', date_of_birth: '', gender: '', blood_group: '', height: '',
   });
@@ -101,6 +102,8 @@ export default function Onboarding() {
     if (!file) return;
     setInsuranceProcessing(true);
     setInsuranceError('');
+    setInsuranceData(null);
+    setInsuranceReviewed(false);
     try {
       const { url } = await uploadFile(file);
       setInsuranceUpload({ url, name: file.name, size: file.size });
@@ -218,6 +221,11 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
 
   const canNext = () => {
     if (step === 1) return formData.full_name.trim().length > 0;
+    if (step === 4) {
+      if (insuranceProcessing) return false;
+      if (insuranceUpload && !insuranceData) return false;
+      if (insuranceData && !insuranceReviewed) return false;
+    }
     return true;
   };
 
@@ -416,7 +424,20 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={insuranceReviewed}
+                          onChange={(e) => setInsuranceReviewed(e.target.checked)}
+                        />
+                        <span>I reviewed the extracted details and confirm they are correct.</span>
+                      </label>
+                      {!insuranceReviewed && (
+                        <p className="text-xs" style={{ color: 'var(--hf-coral-strong)' }}>
+                          Please confirm extracted details to proceed.
+                        </p>
+                      )}
+                      <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); setInsuranceReviewed(false); setInsuranceError(''); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
                         Remove & upload different document
                       </button>
                     </div>

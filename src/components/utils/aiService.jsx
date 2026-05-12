@@ -338,17 +338,33 @@ export async function uploadFile(file) {
     .slice(0, 80);
   const path = `insurance/${Date.now()}_${Math.random().toString(36).slice(2, 10)}_${safeName}`;
 
-  const candidateBuckets = [STORAGE_BUCKET, 'documents', 'uploads'];
+  const candidateBuckets = Array.from(new Set([STORAGE_BUCKET, 'documents', 'uploads'].filter(Boolean)));
   let lastError = null;
 
   for (const bucket of candidateBuckets) {
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: '3600',
       upsert: false,
+      contentType: file.type || undefined,
     });
     if (!error) {
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      return { url: data.publicUrl, file_url: data.publicUrl, path, bucket, size: file.size };
+      let fileUrl = null;
+
+      const { data: signedData } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      if (signedData?.signedUrl) {
+        fileUrl = signedData.signedUrl;
+      } else {
+        const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+        fileUrl = data?.publicUrl || null;
+      }
+
+      if (!fileUrl) {
+        throw new Error(`Upload succeeded but URL generation failed for bucket: ${bucket}`);
+      }
+
+      return { url: fileUrl, file_url: fileUrl, path, bucket, size: file.size };
     }
     lastError = error;
   }
