@@ -792,6 +792,12 @@ CREATE OR REPLACE FUNCTION auth_email() RETURNS TEXT AS $$
   );
 $$ LANGUAGE SQL STABLE;
 
+-- Drop ALL overloads of is_admin() before creating, so that a partial previous
+-- run (e.g. 007 already ran and created is_admin(UUID DEFAULT)) cannot leave
+-- two callable-with-zero-args overloads that cause ERROR 42725.
+DROP FUNCTION IF EXISTS is_admin() CASCADE;
+DROP FUNCTION IF EXISTS is_admin(UUID) CASCADE;
+
 -- SECURITY DEFINER prevents recursive RLS: this function bypasses RLS when it
 -- queries profiles, so the policy that calls is_admin() does NOT re-trigger itself.
 CREATE OR REPLACE FUNCTION is_admin() RETURNS BOOLEAN
