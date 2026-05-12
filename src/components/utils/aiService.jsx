@@ -7,6 +7,7 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 const STORAGE_BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'uploads';
+const PDF_TEXT_LIMIT = 30000;
 
 const GLOBAL_TEXT_SYSTEM_PROMPT = `You are HealthFlux AI, a clinical-grade health assistant.
 Follow these rules for every response:
@@ -318,7 +319,45 @@ export async function callAIVision({
     file_urls: fileUrls || file_urls || [],
     response_json_schema: effectiveSchema,
     function_name: functionName || 'vision',
-  }).then((res) => buildReadableSummary(res));
+}).then((res) => buildReadableSummary(res));
+}
+
+export async function extractTextFromPdf(file) {
+  if (!file) throw new Error('No PDF file provided');
+  const fileName = (file.name || '').toLowerCase();
+  const fileType = (file.type || '').toLowerCase();
+  if (!fileType.includes('pdf') && !fileName.endsWith('.pdf')) {
+    throw new Error('File is not a PDF');
+  }
+
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const loadingTask = pdfjs.getDocument({ data: bytes, useWorkerFetch: false });
+  const doc = await loadingTask.promise;
+
+  const maxPages = Math.min(doc.numPages || 0, 80);
+  const pageTexts = [];
+
+  for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
+    const page = await doc.getPage(pageNum);
+    const content = await page.getTextContent();
+    const text = (content?.items || [])
+      .map((item) => (typeof item?.str === 'string' ? item.str : ''))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text) pageTexts.push(`Page ${pageNum}: ${text}`);
+    const current = pageTexts.join('\n').length;
+    if (current >= PDF_TEXT_LIMIT) break;
+  }
+
+  const combined = pageTexts.join('\n').slice(0, PDF_TEXT_LIMIT).trim();
+  if (!combined) throw new Error('Unable to extract readable text from this PDF');
+  return combined;
 }
 
 // ── Extract data from file ──

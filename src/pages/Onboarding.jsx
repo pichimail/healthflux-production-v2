@@ -11,7 +11,7 @@ import { User, Heart, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Upload, Loa
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';
-import { callAIVision, uploadFile } from '@/components/utils/aiService';
+import { callAIVision, extractTextFromPdf, uploadFile } from '@/components/utils/aiService';
 
 const STEPS = [
   { id: 1, title: 'Welcome', subtitle: 'Tell us your name' },
@@ -107,7 +107,42 @@ export default function Onboarding() {
     try {
       const { url } = await uploadFile(file);
       setInsuranceUpload({ url, name: file.name, size: file.size });
-      const result = await callAIVision({
+      const isPdf = (file.type || '').toLowerCase().includes('pdf') || /\.pdf$/i.test(file.name || '');
+      let result;
+
+      if (isPdf) {
+        const extractedText = await extractTextFromPdf(file);
+        result = await callAIVision({
+          prompt: `Extract ALL family member information from this health insurance document text.
+Return JSON with this exact structure:
+{
+  "policy_number": "string",
+  "insurer": "string", 
+  "plan_name": "string",
+  "valid_from": "date",
+  "valid_to": "date",
+  "sum_insured": "number",
+  "members": [
+    {
+      "full_name": "string",
+      "relationship": "self|spouse|child|parent|sibling|other",
+      "date_of_birth": "YYYY-MM-DD or null",
+      "gender": "male|female|other",
+      "age": "number or null",
+      "blood_group": "string or null"
+    }
+  ]
+}
+Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".
+
+DOCUMENT_TEXT_START
+${extractedText}
+DOCUMENT_TEXT_END`,
+          response_json_schema: true,
+          functionName: 'extractInsuranceData',
+        });
+      } else {
+        result = await callAIVision({
         prompt: `Extract ALL family member information from this health insurance document.
 Return JSON with this exact structure:
 {
@@ -133,6 +168,7 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
         response_json_schema: true,
         functionName: 'extractInsuranceData',
       });
+      }
       const parsed = typeof result === 'string' ? JSON.parse(result) : result;
       setInsuranceData(parsed);
       if (parsed?.members?.[0]?.full_name && !formData.full_name) {
