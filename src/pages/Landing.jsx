@@ -1,27 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import {
-  Brain,
-  FileText,
-  HeartPulse,
-  Pill,
-} from "lucide-react";
-import MarketingShell from "@/components/marketing/MarketingShell";
-import {
-  CTABanner,
-  FeatureCard,
-  SectionBlock,
-  StatRow,
-  StoryBand,
-} from "@/components/marketing/MarketingBlocks";
-import {
-  featureHighlights,
-  problemBlocks,
-  productModules,
-  rolloutStats,
-} from "@/components/marketing/marketing-data";
-import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
+import React from "react";
+import { Navigate } from "react-router-dom";
+
+// Landing redirects to MarketingHome (root path)
+export default function Landing() {
+  return <Navigate to="/" replace />;
+}
 
 export default function Landing() {
   const [isAuthed, setIsAuthed] = useState(false);

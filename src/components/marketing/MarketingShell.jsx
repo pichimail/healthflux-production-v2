@@ -1,168 +1,196 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { createPageUrl } from "@/utils";
-import { marketingNav, marketingTones } from "./marketing-data";
 
-function BrandLockup() {
-  return (
-    <Link to={createPageUrl("Landing")} className="marketing-brand">
-      <img src="/healthflux-logo.svg" alt="HealthFlux" className="marketing-brand-image" />
-    </Link>
-  );
-}
+const NAV_LINKS = [
+  { label: "Features", page: "Platform" },
+  { label: "Solutions", page: "Solutions" },
+  { label: "Pricing", page: "Pricing" },
+  { label: "Docs", page: "DevDocs" },
+];
 
-function NavLink({ page, label, currentPage }) {
-  const active = currentPage === page;
-  return (
-    <Link
-      to={createPageUrl(page)}
-      className="marketing-nav-link"
-      style={{
-        background: active ? "rgba(255,255,255,0.85)" : "transparent",
-        color: active ? "#0f172a" : "#425066",
-        boxShadow: active ? "0 18px 30px rgba(15, 23, 42, 0.08)" : "none",
-      }}
-    >
-      {label}
-    </Link>
-  );
-}
+const FOOTER_COLS = {
+  Product: [
+    { label: "Features", page: "Platform" },
+    { label: "Solutions", page: "Solutions" },
+    { label: "Pricing", page: "Pricing" },
+    { label: "API Docs", page: "DevDocs" },
+  ],
+  Legal: [
+    { label: "Privacy Policy", page: "Privacy" },
+    { label: "Terms of Service", page: "Terms" },
+    { label: "Cookie Policy", page: "Cookies" },
+    { label: "Trust Center", page: "TrustCenter" },
+  ],
+  App: [
+    { label: "Health Hub", page: "HealthHub" },
+    { label: "AI Hub", page: "AIHub" },
+    { label: "Wellness Hub", page: "WellnessHub" },
+    { label: "Care Hub", page: "CareHub" },
+  ],
+};
 
-export default function MarketingShell({
-  currentPage,
-  eyebrow,
-  title,
-  description,
-  heroTone = "lemon",
-  stats = [],
-  sectionLinks = [],
-  heroAside,
-  children,
-}) {
-  const { scrollY } = useScroll();
-  const orbA = useTransform(scrollY, [0, 1400], [0, 180]);
-  const orbB = useTransform(scrollY, [0, 1400], [0, -160]);
-  const palette = marketingTones[heroTone] || marketingTones.lemon;
+export default function MarketingShell({ children, currentPage }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
 
   return (
-    <div className="marketing-shell">
-      <motion.div className="marketing-orb marketing-orb-a" style={{ y: orbA }} />
-      <motion.div className="marketing-orb marketing-orb-b" style={{ y: orbB }} />
-      <motion.div className="marketing-grid-glow" />
+    <div className="min-h-screen" style={{ background: "#fafaf8", color: "#101322" }}>
+      {/* ── Header ── */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{
+          background: scrolled ? "rgba(255,255,255,0.96)" : "rgba(250,250,248,0.92)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: scrolled ? "1px solid rgba(15,23,42,0.09)" : "1px solid transparent",
+          boxShadow: scrolled ? "0 2px 20px rgba(15,23,42,0.06)" : "none",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link to={createPageUrl("Landing")} className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm select-none"
+              style={{ background: "#d7f576", color: "#0a1200" }}>HF</div>
+            <span className="font-bold text-lg tracking-tight" style={{ color: "#101322" }}>HealthFlux</span>
+          </Link>
 
-      <header className="marketing-header">
-        <div className="marketing-header-inner">
-          <BrandLockup />
-          <nav className="marketing-nav-desktop">
-            {marketingNav.map((item) => (
-              <NavLink key={item.page} page={item.page} label={item.label} currentPage={currentPage} />
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-0.5">
+            {NAV_LINKS.map(({ label, page }) => (
+              <Link key={page} to={createPageUrl(page)}
+                className="px-4 py-2 rounded-xl text-sm transition-all"
+                style={{
+                  color: currentPage === page ? "#0a1200" : "#475569",
+                  background: currentPage === page ? "#d7f576" : "transparent",
+                  fontWeight: currentPage === page ? 700 : 500,
+                }}>
+                {label}
+              </Link>
             ))}
           </nav>
-          <div className="marketing-nav-actions">
-            <Link to={createPageUrl("Dashboard")} className="marketing-secondary-button">
-              Product tour
+
+          {/* CTA buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link to={createPageUrl("Dashboard")}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-75"
+              style={{ color: "#475569" }}>
+              Sign in
             </Link>
-            <Link to={createPageUrl("Onboarding")} className="marketing-primary-button">
-              Get started <ArrowRight size={15} />
+            <Link to={createPageUrl("Onboarding")}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95"
+              style={{ background: "#0f172a", color: "#ffffff" }}>
+              Get started <ArrowRight size={13} />
             </Link>
           </div>
-          <Link to={createPageUrl("Onboarding")} className="marketing-nav-mobile" aria-label="Get started">
-            <ArrowRight size={18} />
-          </Link>
+
+          {/* Mobile toggle */}
+          <button onClick={() => setMobileOpen(o => !o)}
+            className="md:hidden p-2 rounded-xl transition-colors"
+            style={{ color: "#101322" }}
+            aria-label="Toggle menu">
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-        <div className="marketing-nav-mobile-row">
-          {marketingNav.map((item) => (
-            <NavLink key={item.page} page={item.page} label={item.label} currentPage={currentPage} />
-          ))}
-        </div>
+
+        {/* Mobile dropdown */}
+        {mobileOpen && (
+          <div className="md:hidden border-t px-4 py-4 space-y-1"
+            style={{ borderColor: "rgba(15,23,42,0.09)", background: "rgba(255,255,255,0.99)" }}>
+            {NAV_LINKS.map(({ label, page }) => (
+              <Link key={page} to={createPageUrl(page)}
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-3 rounded-xl text-sm font-semibold"
+                style={{
+                  color: currentPage === page ? "#0a1200" : "#475569",
+                  background: currentPage === page ? "#d7f576" : "transparent",
+                }}>
+                {label}
+              </Link>
+            ))}
+            <div className="pt-3 border-t space-y-2" style={{ borderColor: "rgba(15,23,42,0.09)" }}>
+              <Link to={createPageUrl("Dashboard")} onClick={() => setMobileOpen(false)}
+                className="block w-full text-center px-5 py-2.5 rounded-xl text-sm font-semibold border"
+                style={{ color: "#475569", borderColor: "rgba(15,23,42,0.14)" }}>
+                Sign in
+              </Link>
+              <Link to={createPageUrl("Onboarding")} onClick={() => setMobileOpen(false)}
+                className="block w-full text-center px-5 py-3 rounded-xl text-sm font-bold"
+                style={{ background: "#0f172a", color: "#ffffff" }}>
+                Get started free
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
-      <main className="marketing-main">
-        <section className="marketing-hero">
-          <div className="marketing-hero-copy">
-            <span className="marketing-eyebrow">
-              <Sparkles size={13} />
-              {eyebrow}
-            </span>
-            <h1>{title}</h1>
-            <p>{description}</p>
-            <div className="marketing-hero-actions">
-              <Link to={createPageUrl("Onboarding")} className="marketing-primary-button">
-                Explore the experience <ArrowRight size={15} />
-              </Link>
-              <Link to={createPageUrl("DevDocs")} className="marketing-secondary-button">
-                Read dev docs
+      {/* ── Main content ── */}
+      <main className="pt-16">{children}</main>
+
+      {/* ── Footer ── */}
+      <footer style={{ background: "#0c1120", color: "#cbd5e1" }}>
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-14">
+            {/* Brand column */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm"
+                  style={{ background: "#d7f576", color: "#0a1200" }}>HF</div>
+                <span className="font-bold text-lg text-white">HealthFlux</span>
+              </div>
+              <p className="text-sm leading-relaxed mb-6" style={{ color: "#94a3b8", maxWidth: 320 }}>
+                Your personal AI health operating system — vitals, medications, labs, documents, 
+                nutrition, wellness, family care, and telehealth in one seamless experience.
+              </p>
+              <Link to={createPageUrl("Onboarding")}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
+                style={{ background: "#d7f576", color: "#0a1200" }}>
+                Start for free <ArrowRight size={14} />
               </Link>
             </div>
-            {sectionLinks.length > 0 ? (
-              <div className="marketing-section-links">
-                {sectionLinks.map((link) => (
-                  <a key={link.href} href={link.href} className="marketing-section-chip">
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
 
-          <div className="marketing-hero-aside">
-            <div className="marketing-hero-panel">
-              <div className="marketing-hero-panel-top">
-                <div className="marketing-status-dot" style={{ background: palette.solid }} />
-                <span style={{ color: palette.text }}>Pastel-first product system</span>
-              </div>
-              {heroAside}
-              {stats.length > 0 ? (
-                <div className="marketing-hero-stats">
-                  {stats.map((stat) => (
-                    <div key={stat.label} className="marketing-hero-stat">
-                      <span className="marketing-hero-stat-value">{stat.value}</span>
-                      <span className="marketing-hero-stat-label">{stat.label}</span>
-                    </div>
+            {/* Link columns */}
+            {Object.entries(FOOTER_COLS).map(([group, links]) => (
+              <div key={group}>
+                <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "#64748b" }}>
+                  {group}
+                </p>
+                <ul className="space-y-3">
+                  {links.map(({ label, page }) => (
+                    <li key={page}>
+                      <Link to={createPageUrl(page)}
+                        className="text-sm transition-colors hover:text-white"
+                        style={{ color: "#94a3b8" }}>
+                        {label}
+                      </Link>
+                    </li>
                   ))}
-                </div>
-              ) : null}
-            </div>
+                </ul>
+              </div>
+            ))}
           </div>
-        </section>
 
-        {children}
-      </main>
-
-      <footer className="marketing-footer">
-        <div className="marketing-footer-top">
-          <BrandLockup />
-          <p>
-            HealthFlux brings vitals, medications, labs, nutrition, AI guidance, documents,
-            wellness, family care, and telehealth into one operating system.
-          </p>
-        </div>
-        <div className="marketing-footer-grid">
-          <div>
-            <span className="marketing-footer-label">Explore</span>
-            <div className="marketing-footer-links">
-              {marketingNav.map((item) => (
-                <Link key={item.page} to={createPageUrl(item.page)}>{item.label}</Link>
+          {/* Bottom bar */}
+          <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+            style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <p className="text-xs" style={{ color: "#475569" }}>
+              © {new Date().getFullYear()} HealthFlux Technologies. All rights reserved.
+            </p>
+            <div className="flex items-center gap-5">
+              {[{ label: "Privacy", page: "Privacy" }, { label: "Terms", page: "Terms" }, { label: "Cookies", page: "Cookies" }].map(({ label, page }) => (
+                <Link key={page} to={createPageUrl(page)}
+                  className="text-xs hover:text-white transition-colors"
+                  style={{ color: "#475569" }}>
+                  {label}
+                </Link>
               ))}
-            </div>
-          </div>
-          <div>
-            <span className="marketing-footer-label">Application</span>
-            <div className="marketing-footer-links">
-              <Link to={createPageUrl("HealthHub")}>Health Hub</Link>
-              <Link to={createPageUrl("AIHub")}>AI Hub</Link>
-              <Link to={createPageUrl("WellnessHub")}>Wellness Hub</Link>
-              <Link to={createPageUrl("CareHub")}>Care Hub</Link>
-            </div>
-          </div>
-          <div>
-            <span className="marketing-footer-label">Policies</span>
-            <div className="marketing-footer-links">
-              <Link to={createPageUrl("Terms")}>Terms</Link>
-              <Link to={createPageUrl("Privacy")}>Privacy</Link>
-              <Link to={createPageUrl("DevDocs")}>Developer Docs</Link>
             </div>
           </div>
         </div>
