@@ -1,13 +1,12 @@
 /**
- * AuthContext — Google OAuth via Supabase Auth (or custom JWT for Neon)
- * Replaces Base44 auth completely
- * 
- * ENV:
- *   VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
- *   VITE_DB_PROVIDER=supabase|neon
- *   
- * For Supabase: Configure Google OAuth in Supabase Dashboard → Auth → Providers
- * For Neon: Uses /api/auth/* endpoints (implement with NextAuth or custom)
+ * AuthContext — Production (Supabase Auth: Google + Phone OTP + Email + ABHA)
+ *
+ * Three sign-in methods exposed to UI:
+ *   1. continueWithGoogle()    → Supabase OAuth
+ *   2. requestPhoneOtp()/verifyPhoneOtp() → Supabase phone (SMS)
+ *   3. continueWithABHA()      → /api/abha (Surepass)
+ *
+ * NO Base44 SDK. NO localStorage hacks.
  */
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import db from './db';
@@ -18,7 +17,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState(null);
   const initDone = useRef(false);
 
@@ -27,7 +26,6 @@ export function AuthProvider({ children }) {
     initDone.current = true;
     checkAuth();
 
-    // Listen for auth state changes (Supabase realtime)
     let unsubscribe = null;
     (async () => {
       try {
@@ -35,6 +33,7 @@ export function AuthProvider({ children }) {
           if (event === 'SIGNED_IN' && session?.user) {
             setUser(formatUser(session.user));
             setIsAuthenticated(true);
+            setAuthError(null);
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
             setIsAuthenticated(false);
@@ -47,7 +46,6 @@ export function AuthProvider({ children }) {
     return () => unsubscribe?.();
   }, []);
 
-  // Safety timer — never stay loading forever
   useEffect(() => {
     const timer = setTimeout(() => setIsLoadingAuth(false), 10000);
     return () => clearTimeout(timer);
@@ -59,85 +57,102 @@ export function AuthProvider({ children }) {
       id: u.id,
       email: u.email || u.user_metadata?.email,
       full_name: u.user_metadata?.full_name || u.user_metadata?.name || '',
-      avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
-      role: u.user_metadata?.role || 'user',
+      avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture,
+      phone: u.phone,
+      provider: u.app_metadata?.provider,
+      raw: u,
     };
   }
 
   async function checkAuth() {
     try {
-      setIsLoadingAuth(true);
-      setAuthError(null);
-
-      const { data } = await db.auth.getSession();
-      const session = data?.session;
-
-      if (session?.user) {
-        setUser(formatUser(session.user));
-        setIsAuthenticated(true);
-      } else {
+      const { data, error } = await db.auth.getUser();
+      if (error || !data?.user) {
+        setUser(null);
         setIsAuthenticated(false);
+      } else {
+        setUser(formatUser(data.user));
+        setIsAuthenticated(true);
       }
-    } catch (err) {
-      console.error('Auth check failed:', err);
-      setAuthError({ type: 'unknown', message: err.message });
+    } catch (e) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthError({ type: 'unknown', message: e.message });
     } finally {
       setIsLoadingAuth(false);
+      setAuthChecked(true);
     }
   }
 
-  async function signInWithGoogle() {
-    try {
-      await db.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/dashboard',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-    } catch (err) {
-      setAuthError({ type: 'auth_failed', message: err.message });
-    }
+  // ─── Sign-in methods ──────────────────────────────────
+  async function continueWithGoogle(returnTo) {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: returnTo || `${window.location.origin}/onboarding`,
+        scopes: 'email profile',
+      },
+    });
+    if (error) throw error;
   }
 
-  async function logout(shouldRedirect = true) {
-    try {
-      await db.auth.signOut();
-    } catch {}
+  async function requestPhoneOtp(phone) {
+    const { error } = await db.auth.signInWithOtp({
+      phone,
+      options: { channel: 'sms' },
+    });
+    if (error) throw error;
+    return true;
+  }
+
+  async function verifyPhoneOtp(phone, otp) {
+    const { data, error } = await db.auth.verifyOtp({
+      phone, token: otp, type: 'sms',
+    });
+    if (error) throw error;
+    if (data?.user) {
+      setUser(formatUser(data.user));
+      setIsAuthenticated(true);
+    }
+    return data;
+  }
+
+  async function continueWithEmail(email) {
+    const { error } = await db.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+    });
+    if (error) throw error;
+    return true;
+  }
+
+  async function continueWithABHA() {
+    // Redirect to ABHA flow page (handled by /pages/ABHAConnect.jsx)
+    window.location.href = '/abha-connect';
+  }
+
+  async function signOut() {
+    await db.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
-    if (shouldRedirect) {
-      window.location.href = '/';
-    }
+    localStorage.clear();
+    window.location.href = '/';
   }
 
-  function navigateToLogin() {
-    signInWithGoogle();
-  }
+  const value = {
+    user, isAuthenticated, isLoadingAuth, authChecked, authError,
+    checkAuth, checkUserAuth: checkAuth, // alias
+    continueWithGoogle,
+    requestPhoneOtp, verifyPhoneOtp,
+    continueWithEmail, continueWithABHA,
+    signOut, logout: signOut, // alias
+  };
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated,
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings: null,
-      logout,
-      navigateToLogin,
-      signInWithGoogle,
-      checkAppState: checkAuth,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }
