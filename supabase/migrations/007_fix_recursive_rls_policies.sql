@@ -1,5 +1,6 @@
 -- HealthFlux Migration: 007_fix_recursive_rls_policies.sql
 -- Fixes recursive RLS policy checks that caused 500s on profiles queries.
+-- Safe to rerun. Policies are dropped with IF EXISTS before recreation.
 
 -- Profiles: strict ownership only (no self-referencing EXISTS)
 DROP POLICY IF EXISTS "profiles_select_strict" ON profiles;
@@ -34,7 +35,7 @@ BEGIN
       'vital_measurements', 'medications', 'medication_logs',
       'medical_documents', 'lab_results', 'health_insights',
       'wellness_goals', 'goal_logs', 'meal_logs', 'nutrition_goals',
-      'share_links', 'care_circles', 'care_circle_messages',
+      'share_links', 'care_circles',
       'connected_devices', 'gamification_profiles',
       'drug_interactions', 'side_effects', 'medication_effectiveness',
       'refill_reminders', 'coach_messages', 'ai_health_reports',

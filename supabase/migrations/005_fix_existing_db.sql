@@ -33,9 +33,16 @@ UPDATE subscription_packages SET slug = plan_key WHERE slug IS NULL AND plan_key
 UPDATE subscription_packages SET slug = LOWER(REPLACE(name, ' ', '_')) WHERE slug IS NULL;
 
 -- Add unique constraint on slug (skip if exists)
-DO $$ BEGIN
-  ALTER TABLE subscription_packages ADD CONSTRAINT subscription_packages_slug_key UNIQUE (slug);
-EXCEPTION WHEN duplicate_table THEN NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'subscription_packages_slug_key'
+      AND conrelid = 'subscription_packages'::regclass
+  ) THEN
+    ALTER TABLE subscription_packages ADD CONSTRAINT subscription_packages_slug_key UNIQUE (slug);
+  END IF;
 END $$;
 
 -- ── Fix user_subscriptions: add missing columns ──────────────────

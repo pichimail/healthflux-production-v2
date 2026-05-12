@@ -80,6 +80,10 @@ DECLARE
   ];
 BEGIN
   FOREACH tbl IN ARRAY tbls LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_select', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_insert', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_update', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_delete', tbl);
     -- SELECT: own data or admin
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT USING (created_by = auth_email() OR is_admin())', 
       tbl || '_select', tbl);
@@ -108,6 +112,10 @@ DECLARE
   ];
 BEGIN
   FOREACH tbl IN ARRAY tbls LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_select', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_insert', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_update', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_delete', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT USING (user_email = auth_email() OR is_admin())', 
       tbl || '_select', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR INSERT WITH CHECK (user_email = auth_email() OR is_admin())', 
@@ -122,6 +130,10 @@ END $$;
 -- ══════════════════════════════════════════════
 -- CARE CIRCLE: Dual-access (owner OR caregiver)
 -- ══════════════════════════════════════════════
+DROP POLICY IF EXISTS care_circles_select ON care_circles;
+DROP POLICY IF EXISTS care_circles_insert ON care_circles;
+DROP POLICY IF EXISTS care_circles_update ON care_circles;
+DROP POLICY IF EXISTS care_circles_delete ON care_circles;
 CREATE POLICY care_circles_select ON care_circles FOR SELECT
   USING (owner_email = auth_email() OR caregiver_email = auth_email() OR is_admin());
 CREATE POLICY care_circles_insert ON care_circles FOR INSERT
@@ -131,6 +143,10 @@ CREATE POLICY care_circles_update ON care_circles FOR UPDATE
 CREATE POLICY care_circles_delete ON care_circles FOR DELETE
   USING (owner_email = auth_email() OR is_admin());
 
+DROP POLICY IF EXISTS ccm_select ON care_circle_messages;
+DROP POLICY IF EXISTS ccm_insert ON care_circle_messages;
+DROP POLICY IF EXISTS ccm_update ON care_circle_messages;
+DROP POLICY IF EXISTS ccm_delete ON care_circle_messages;
 CREATE POLICY ccm_select ON care_circle_messages FOR SELECT
   USING (owner_email = auth_email() OR caregiver_email = auth_email() OR is_admin());
 CREATE POLICY ccm_insert ON care_circle_messages FOR INSERT
@@ -143,20 +159,30 @@ CREATE POLICY ccm_delete ON care_circle_messages FOR DELETE
 -- ══════════════════════════════════════════════
 -- ADMIN-ONLY TABLES
 -- ══════════════════════════════════════════════
+DROP POLICY IF EXISTS ff_select ON feature_flag_assignments;
+DROP POLICY IF EXISTS ff_modify ON feature_flag_assignments;
 CREATE POLICY ff_select ON feature_flag_assignments FOR SELECT USING (TRUE); -- all can read flags
 CREATE POLICY ff_modify ON feature_flag_assignments FOR ALL USING (is_admin());
 
+DROP POLICY IF EXISTS ads_select ON ads;
+DROP POLICY IF EXISTS ads_modify ON ads;
 CREATE POLICY ads_select ON ads FOR SELECT USING (is_active = TRUE OR is_admin());
 CREATE POLICY ads_modify ON ads FOR ALL USING (is_admin());
 
+DROP POLICY IF EXISTS roles_select ON roles;
+DROP POLICY IF EXISTS roles_modify ON roles;
 CREATE POLICY roles_select ON roles FOR SELECT USING (TRUE);
 CREATE POLICY roles_modify ON roles FOR ALL USING (is_admin());
 
 -- ══════════════════════════════════════════════
 -- PUBLIC READ TABLES
 -- ══════════════════════════════════════════════
+DROP POLICY IF EXISTS sp_select ON subscription_packages;
+DROP POLICY IF EXISTS sp_modify ON subscription_packages;
 CREATE POLICY sp_select ON subscription_packages FOR SELECT USING (is_active = TRUE OR is_admin());
 CREATE POLICY sp_modify ON subscription_packages FOR ALL USING (is_admin());
 
+DROP POLICY IF EXISTS td_select ON telehealth_doctors;
+DROP POLICY IF EXISTS td_modify ON telehealth_doctors;
 CREATE POLICY td_select ON telehealth_doctors FOR SELECT USING (is_active = TRUE OR is_admin());
 CREATE POLICY td_modify ON telehealth_doctors FOR ALL USING (is_admin());

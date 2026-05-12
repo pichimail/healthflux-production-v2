@@ -32,46 +32,25 @@ DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 DROP POLICY IF EXISTS "profiles_delete_own" ON profiles;
 
--- Strict SELECT: Only see your own family profiles (or admin sees all)
+-- Strict SELECT: Only see your own family profiles.
 CREATE POLICY "profiles_select_strict"
   ON profiles FOR SELECT
-  USING (
-    created_by = auth.jwt() ->> 'email'
-    OR EXISTS (
-      SELECT 1 FROM profiles p2
-      WHERE p2.created_by = auth.jwt() ->> 'email'
-      AND p2.role = 'admin'
-    )
-  );
+  USING (created_by = auth.jwt() ->> 'email');
 
 -- Strict INSERT: Can only create profiles under your own email
 CREATE POLICY "profiles_insert_strict"
   ON profiles FOR INSERT
   WITH CHECK (created_by = auth.jwt() ->> 'email');
 
--- Strict UPDATE: Can only update your own profiles (or admin)
+-- Strict UPDATE: Can only update your own profiles.
 CREATE POLICY "profiles_update_strict"
   ON profiles FOR UPDATE
-  USING (
-    created_by = auth.jwt() ->> 'email'
-    OR EXISTS (
-      SELECT 1 FROM profiles p2
-      WHERE p2.created_by = auth.jwt() ->> 'email'
-      AND p2.role = 'admin'
-    )
-  );
+  USING (created_by = auth.jwt() ->> 'email');
 
--- Strict DELETE: Can only delete your own profiles (or admin)
+-- Strict DELETE: Can only delete your own profiles.
 CREATE POLICY "profiles_delete_strict"
   ON profiles FOR DELETE
-  USING (
-    created_by = auth.jwt() ->> 'email'
-    OR EXISTS (
-      SELECT 1 FROM profiles p2
-      WHERE p2.created_by = auth.jwt() ->> 'email'
-      AND p2.role = 'admin'
-    )
-  );
+  USING (created_by = auth.jwt() ->> 'email');
 
 -- ══════════════════════════════════════════════
 -- 3. STRICT RLS FOR ALL DATA TABLES
@@ -89,7 +68,7 @@ BEGIN
       'vital_measurements', 'medications', 'medication_logs',
       'medical_documents', 'lab_results', 'health_insights',
       'wellness_goals', 'goal_logs', 'meal_logs', 'nutrition_goals',
-      'share_links', 'care_circles', 'care_circle_messages',
+      'share_links', 'care_circles',
       'connected_devices', 'gamification_profiles',
       'drug_interactions', 'side_effects', 'medication_effectiveness',
       'refill_reminders', 'coach_messages', 'ai_health_reports',
@@ -100,13 +79,15 @@ BEGIN
     -- Drop old policies
     EXECUTE format('DROP POLICY IF EXISTS "%s_select_own" ON %I', tbl, tbl);
     EXECUTE format('DROP POLICY IF EXISTS "%s_insert_own" ON %I', tbl, tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "%s_select_strict" ON %I', tbl, tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "%s_insert_strict" ON %I', tbl, tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "%s_update_strict" ON %I', tbl, tbl);
     EXECUTE format('DROP POLICY IF EXISTS "Users view own %s" ON %I', tbl, tbl);
     
     -- Create strict SELECT policy
     EXECUTE format(
       'CREATE POLICY "%s_select_strict" ON %I FOR SELECT USING (
         created_by = auth.jwt() ->> ''email''
-        OR EXISTS (SELECT 1 FROM profiles WHERE created_by = auth.jwt() ->> ''email'' AND role = ''admin'')
       )', tbl, tbl
     );
     
@@ -121,7 +102,6 @@ BEGIN
     EXECUTE format(
       'CREATE POLICY "%s_update_strict" ON %I FOR UPDATE USING (
         created_by = auth.jwt() ->> ''email''
-        OR EXISTS (SELECT 1 FROM profiles WHERE created_by = auth.jwt() ->> ''email'' AND role = ''admin'')
       )', tbl, tbl
     );
   END LOOP;
@@ -238,4 +218,3 @@ BEGIN
   RETURN current_count < max_allowed;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-

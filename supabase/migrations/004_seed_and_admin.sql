@@ -1,6 +1,41 @@
 -- HealthFlux Migration: 004_seed_and_admin.sql
 -- Subscription plans, admin views, helper functions
 -- Run AFTER 001, 002, 003
+-- Safe to rerun: uses IF EXISTS/IF NOT EXISTS or UPSERT patterns.
+
+-- Ensure subscription_packages has required columns even on older DBs.
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS plan_key TEXT;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS price_monthly NUMERIC DEFAULT 0;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS price_yearly NUMERIC DEFAULT 0;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'INR';
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS ai_calls_per_month INTEGER DEFAULT 10;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS storage_gb NUMERIC DEFAULT 0.5;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS max_profiles INTEGER DEFAULT 1;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS max_documents INTEGER DEFAULT 10;
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS features JSONB DEFAULT '[]';
+ALTER TABLE IF EXISTS subscription_packages ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+
+UPDATE subscription_packages
+SET slug = COALESCE(slug, plan_key, LOWER(REPLACE(name, ' ', '_')))
+WHERE slug IS NULL;
+
+DO $$ BEGIN
+  ALTER TABLE subscription_packages ALTER COLUMN slug SET NOT NULL;
+EXCEPTION WHEN others THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'subscription_packages_slug_key'
+      AND conrelid = 'subscription_packages'::regclass
+  ) THEN
+    ALTER TABLE subscription_packages ADD CONSTRAINT subscription_packages_slug_key UNIQUE (slug);
+  END IF;
+END $$;
 
 -- ══════════════════════════════════════════════
 -- 1. SEED DEFAULT SUBSCRIPTION PLANS
@@ -224,4 +259,3 @@ CREATE POLICY "Admins can manage all profiles"
     created_by = auth.jwt() ->> 'email'
     OR EXISTS (SELECT 1 FROM profiles WHERE created_by = auth.jwt() ->> 'email' AND role = 'admin')
   );
-
