@@ -49,6 +49,13 @@ function useOnboardingGate() {
 }
 
 const NO_LAYOUT_PAGES = ['Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy'];
+const ADMIN_PAGES = [
+  'AdminDashboard', 'AdminUsers', 'AdminRoles', 'AdminPackages',
+  'AdminNotifications', 'AdminFeatureFlags', 'AdminAnalytics',
+  'AdminAIOps', 'AdminAds', 'AdminIntegrations',
+  'AdminDocuments', 'AdminVitals', 'AdminInsights', 'AdminMedications',
+  'AdminProfiles', 'AdminAssistant', 'AdminSubscriptions', 'AdminTelehealth',
+];
 const ONBOARDING_EXEMPT = [...NO_LAYOUT_PAGES, ...ADMIN_PAGES, 'PublicShare'];
 
 // ── Global quick-nav chips (shown on all user pages) ──
@@ -88,14 +95,6 @@ function GlobalChipsBar({ onFluxOpen }) {
   );
 }
 const NO_FAB_PAGES = ['PublicShare', 'Demo', 'Home', 'Nutrition'];
-
-const ADMIN_PAGES = [
-  'AdminDashboard', 'AdminUsers', 'AdminRoles', 'AdminPackages',
-  'AdminNotifications', 'AdminFeatureFlags', 'AdminAnalytics',
-  'AdminAIOps', 'AdminAds', 'AdminIntegrations',
-  'AdminDocuments', 'AdminVitals', 'AdminInsights', 'AdminMedications',
-  'AdminProfiles', 'AdminAssistant', 'AdminSubscriptions', 'AdminTelehealth',
-];
 
 // Emoji-prefixed nav matching Admin Dashboard style
 const navItems = [
