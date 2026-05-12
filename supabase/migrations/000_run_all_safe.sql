@@ -1888,7 +1888,8 @@ BEGIN
       'vital_measurements', 'medications', 'medication_logs',
       'medical_documents', 'lab_results', 'health_insights',
       'wellness_goals', 'goal_logs', 'meal_logs', 'nutrition_goals',
-      'share_links', 'care_circles', 'care_circle_messages',
+      'share_links', 'care_circles',
+      -- NOTE: care_circle_messages excluded — no created_by column; handled below
       'connected_devices', 'gamification_profiles',
       'drug_interactions', 'side_effects', 'medication_effectiveness',
       'refill_reminders', 'coach_messages', 'ai_health_reports',
@@ -1924,6 +1925,38 @@ BEGIN
       )', tbl, tbl);
   END LOOP;
 END $$;
+
+-- care_circle_messages has no created_by — uses sender/owner/caregiver email
+DROP POLICY IF EXISTS "care_circle_messages_select_strict" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_insert_strict" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_update_strict" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_select_v2" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_insert_v2" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_update_v2" ON care_circle_messages;
+DROP POLICY IF EXISTS "care_circle_messages_delete_v2" ON care_circle_messages;
+
+CREATE POLICY "care_circle_messages_select_v2" ON care_circle_messages FOR SELECT
+  USING (
+    owner_email = current_user_email()
+    OR caregiver_email = current_user_email()
+    OR sender_email = current_user_email()
+    OR is_admin()
+  );
+
+CREATE POLICY "care_circle_messages_insert_v2" ON care_circle_messages FOR INSERT
+  WITH CHECK (
+    sender_email = current_user_email() OR is_admin()
+  );
+
+CREATE POLICY "care_circle_messages_update_v2" ON care_circle_messages FOR UPDATE
+  USING (
+    sender_email = current_user_email() OR is_admin()
+  );
+
+CREATE POLICY "care_circle_messages_delete_v2" ON care_circle_messages FOR DELETE
+  USING (
+    owner_email = current_user_email() OR is_admin()
+  );
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- PART C: AUTO-CREATE PROFILE + DEFAULT CREDITS ON SIGNUP
