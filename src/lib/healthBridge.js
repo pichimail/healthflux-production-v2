@@ -5,8 +5,8 @@
  * 
  * REQUIRES:
  *   npm install @capacitor/core @capacitor/cli
- *   npm install @nicbou/capacitor-healthkit   (iOS - Apple Health)
- *   npm install @nicbou/capacitor-google-fit  (Android - Google Fit)
+ *   npm install @perfood/capacitor-healthkit   (iOS - Apple Health)
+ *   npm install @perfood/capacitor-google-fit  (Android - Google Fit)
  *   npx cap sync
  * 
  * Falls back gracefully in web browser (shows "Use native app" message)
@@ -24,14 +24,16 @@ let GoogleFit = null;
 async function loadPlugins() {
   if (platform === 'ios') {
     try {
-      const mod = await import('@nicbou/capacitor-healthkit');
+      const healthkitPkg = '@perfood/capacitor-healthkit';
+      const mod = await import(/* @vite-ignore */ healthkitPkg);
       HealthKit = mod.CapacitorHealthkit;
     } catch (e) {
       console.warn('HealthKit plugin not available:', e.message);
     }
   } else if (platform === 'android') {
     try {
-      const mod = await import('@nicbou/capacitor-google-fit');
+      const googleFitPkg = '@perfood/capacitor-google-fit';
+      const mod = await import(/* @vite-ignore */ googleFitPkg);
       GoogleFit = mod.GoogleFit;
     } catch (e) {
       console.warn('GoogleFit plugin not available:', e.message);
