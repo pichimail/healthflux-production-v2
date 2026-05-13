@@ -176,10 +176,10 @@ Be specific, reference actual values, and keep language accessible.`,
   const abnormalLabs = labs.filter(l => l.flag !== 'normal');
 
   const statsBar = [
-    { v: vitals.length, label: 'Vitals', color: 'var(--hf-coral-strong)', bg: 'rgba(242,140,140,0.12)' },
-    { v: meds.length, label: 'Meds', color: 'var(--hf-peach-strong)', bg: 'rgba(247,201,163,0.12)' },
-    { v: labs.length, label: 'Labs', color: 'var(--hf-lavender-strong)', bg: 'rgba(201,187,255,0.12)' },
-    { v: abnormalLabs.length, label: 'Alerts', color: 'var(--hf-coral-strong)', bg: 'rgba(242,140,140,0.1)' },
+    { v: vitals.length, label: 'Vitals', color: 'var(--hf-coral-strong)', tc: '#3d0000', icon: '❤️' },
+    { v: meds.length, label: 'Meds', color: 'var(--hf-peach-strong)', tc: '#3d1a00', icon: '💊' },
+    { v: labs.length, label: 'Labs', color: 'var(--hf-lavender-strong)', tc: '#1a0a40', icon: '🧪' },
+    { v: abnormalLabs.length, label: 'Alerts', color: 'var(--hf-coral-strong)', tc: '#3d0000', icon: '⚠️' },
   ];
 
   return (
@@ -204,9 +204,10 @@ Be specific, reference actual values, and keep language accessible.`,
         <div className="grid grid-cols-4 gap-2 mb-4">
           {statsBar.map(s => (
             <div key={s.label} className="rounded-2xl p-2.5 text-center"
-              style={{ background: s.bg, border: `1px solid ${s.color}33` }}>
-              <p className="text-base font-black" style={{ color: s.color }}>{s.v}</p>
-              <p className="text-[9px] font-bold uppercase tracking-wide mt-0.5" style={{ color: s.color, opacity: 0.8 }}>{s.label}</p>
+              style={{ background: s.color }}>
+              <span className="text-sm">{s.icon}</span>
+              <p className="text-base font-black" style={{ color: s.tc }}>{s.v}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wide mt-0.5" style={{ color: s.tc, opacity: 0.72 }}>{s.label}</p>
             </div>
           ))}
         </div>

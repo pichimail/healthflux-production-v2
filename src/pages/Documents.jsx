@@ -336,14 +336,15 @@ export default function Documents() {
       {/* ── Stats row ── */}
       <div className="grid grid-cols-4 gap-2 mb-5">
         {[
-        { label: 'Total', value: stats.total, color: 'var(--hf-lemon-strong)', bg: 'rgba(215,245,118,0.15)' },
-        { label: 'Labs', value: stats.labs, color: 'var(--hf-lavender-strong)', bg: 'rgba(201,187,255,0.15)' },
-        { label: 'Scripts', value: stats.prescriptions, color: 'var(--hf-peach-strong)', bg: 'rgba(247,201,163,0.15)' },
-        { label: 'Processing', value: stats.processing, color: 'var(--hf-sky-strong)', bg: 'rgba(155,180,255,0.15)' }].
+        { label: 'Total', value: stats.total, color: 'var(--hf-lemon-strong)', tc: '#0a1200', icon: '📄' },
+        { label: 'Labs', value: stats.labs, color: 'var(--hf-lavender-strong)', tc: '#1a0a40', icon: '🧪' },
+        { label: 'Scripts', value: stats.prescriptions, color: 'var(--hf-peach-strong)', tc: '#3d1a00', icon: '💊' },
+        { label: 'Processing', value: stats.processing, color: 'var(--hf-sky-strong)', tc: '#0a1240', icon: '⏳' }].
         map((s) =>
-        <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: s.bg, border: `1px solid ${s.color}30` }}>
-            <p className="text-xl font-black leading-none" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-[9px] font-bold uppercase mt-1" style={{ color: 'var(--hf-text-muted)' }}>{s.label}</p>
+        <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: s.color }}>
+            <span className="text-base">{s.icon}</span>
+            <p className="text-xl font-black leading-none" style={{ color: s.tc }}>{s.value}</p>
+            <p className="text-[9px] font-bold uppercase mt-1" style={{ color: s.tc, opacity: 0.72 }}>{s.label}</p>
           </div>
         )}
       </div>

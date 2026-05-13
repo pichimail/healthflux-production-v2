@@ -5,12 +5,48 @@
  */
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client'; // Will be swapped to dbClient
+import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, Link2, Unlink, Smartphone } from 'lucide-react';
 import { isHealthSyncAvailable, requestHealthPermissions, syncAllVitals } from '@/lib/healthBridge';
 
-export default function DeviceCard({ device, connectedDevice, profileId, onSync }) {
+const DEVICE_CATALOG = [
+  {
+    key: 'apple_health',
+    label: 'Apple Health',
+    icon: '🍎',
+    color: '#ff3b30',
+    bg: 'rgba(255,59,48,0.08)',
+    border: 'rgba(255,59,48,0.25)',
+  },
+  {
+    key: 'google_fit',
+    label: 'Google Fit',
+    icon: '🟢',
+    color: '#4285F4',
+    bg: 'rgba(66,133,244,0.08)',
+    border: 'rgba(66,133,244,0.25)',
+  },
+  {
+    key: 'fitbit',
+    label: 'Fitbit',
+    icon: '⌚',
+    color: '#00B0B9',
+    bg: 'rgba(0,176,185,0.08)',
+    border: 'rgba(0,176,185,0.25)',
+  },
+  {
+    key: 'samsung_health',
+    label: 'Samsung Health',
+    icon: '📱',
+    color: '#0ea5e9',
+    bg: 'rgba(14,165,233,0.08)',
+    border: 'rgba(14,165,233,0.25)',
+  },
+];
+
+function DeviceCard({ device, connectedDevice, profileId, onSync }) {
   const [syncing, setSyncing] = useState(false);
   const qc = useQueryClient();
   const nativeAvailable = isHealthSyncAvailable();
@@ -104,7 +140,7 @@ export default function DeviceCard({ device, connectedDevice, profileId, onSync 
   return (
     <div className="rounded-2xl p-4 flex items-center gap-3"
       style={{ background: isConn ? device.bg : 'var(--hf-surface)', border: `1px solid ${isConn ? device.border : 'var(--hf-border)'}` }}>
-      <div className="text-xl flex-shrink-0">{device.icon}</div>
+      <div className="text-xl flex-shrink-0">{device?.icon || '📱'}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold" style={{ color: 'var(--hf-text)' }}>{device.label}</p>
         <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>
@@ -138,6 +174,48 @@ export default function DeviceCard({ device, connectedDevice, profileId, onSync 
           {isConn ? <><Unlink size={11} /> Disconnect</> : <><Link2 size={11} /> Connect</>}
         </button>
       </div>
+    </div>
+  );
+}
+
+export default function ConnectedDevicesSection({ profileId }) {
+  const { data: connectedDevices = [], isLoading } = useQuery({
+    queryKey: ['connected-devices', profileId],
+    queryFn: () => base44.entities.ConnectedDevice.filter({ profile_id: profileId }, '-updated_date', 20),
+    enabled: !!profileId,
+  });
+
+  if (!profileId) return null;
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)' }}>
+      <div className="mb-3">
+        <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--hf-text-muted)' }}>Connected Devices</p>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--hf-text-muted)' }}>
+          Connect once, then sync health readings into your profile.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-4" style={{ color: 'var(--hf-text-muted)' }}>
+          <Loader2 size={14} className="animate-spin" />
+          <span className="text-xs">Loading devices...</span>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {DEVICE_CATALOG.map((device) => {
+            const connectedDevice = connectedDevices.find((d) => d.device_type === device.key && d.is_connected);
+            return (
+              <DeviceCard
+                key={device.key}
+                device={device}
+                connectedDevice={connectedDevice}
+                profileId={profileId}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
