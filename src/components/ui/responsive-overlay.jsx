@@ -17,6 +17,30 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useBottomSheet } from "@/lib/BottomSheetContext";
 import { cn } from "@/lib/utils";
 
+function HiddenA11yText({ title, description, mobile = false }) {
+  if (!title && !description) return null;
+
+  if (mobile) {
+    return (
+      <>
+        {title ? <DrawerTitle className="sr-only">{title}</DrawerTitle> : null}
+        {description ? (
+          <DrawerDescription className="sr-only">{description}</DrawerDescription>
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {title ? <DialogTitle className="sr-only">{title}</DialogTitle> : null}
+      {description ? (
+        <DialogDescription className="sr-only">{description}</DialogDescription>
+      ) : null}
+    </>
+  );
+}
+
 /**
  * @typedef {object} ResponsiveOverlayProps
  * @property {boolean} open
@@ -63,6 +87,9 @@ export default function ResponsiveOverlay({
             mobileClassName
           )}
         >
+          {hideHeader ? (
+            <HiddenA11yText title={title} description={description} mobile />
+          ) : null}
           {!hideHeader && (
             <DrawerHeader className="border-b border-[var(--hf-border)] px-5 pb-3 pt-2 text-left">
               {title ? <DrawerTitle>{title}</DrawerTitle> : null}
@@ -87,6 +114,9 @@ export default function ResponsiveOverlay({
           desktopClassName
         )}
       >
+        {hideHeader ? (
+          <HiddenA11yText title={title} description={description} />
+        ) : null}
         {!hideHeader && (
           <DialogHeader className="border-b border-[var(--hf-border)] px-6 pb-4 pt-6">
             {title ? <DialogTitle>{title}</DialogTitle> : null}

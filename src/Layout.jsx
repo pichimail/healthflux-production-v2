@@ -149,6 +149,8 @@ function ProfileBottomSheet({ open, onOpenChange, widgets, setWidgets }) {
         <Drawer.Content
           className="fixed bottom-0 left-0 right-0 z-[110] rounded-t-3xl flex flex-col"
           style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '85dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
+          <Drawer.Title className="sr-only">Switch Profile</Drawer.Title>
+          <Drawer.Description className="sr-only">Select active profile and manage dashboard customization.</Drawer.Description>
           <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} />
           </div>
@@ -157,7 +159,7 @@ function ProfileBottomSheet({ open, onOpenChange, widgets, setWidgets }) {
               <p className="text-base font-bold" style={{ color: 'var(--hf-text)' }}>Switch Profile</p>
               <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>{user?.email}</p>
             </div>
-            <div onClick={() => onOpenChange(false)}>
+            <div>
               <WidgetCustomizer widgets={widgets} onChange={setWidgets} />
             </div>
           </div>
@@ -290,7 +292,7 @@ function ProfileDropdown({ user, displayName, isMainUser, sidebarMode = false, w
             </div>
             <div className="border-t p-2 space-y-0.5" style={{ borderColor: 'var(--hf-border)' }}>
               {widgets && setWidgets && (
-                <div className="px-1" onClick={() => setOpen(false)}>
+                <div className="px-1">
                   <WidgetCustomizer widgets={widgets} onChange={(w) => { setWidgets(w); saveWidgets(w); }} />
                 </div>
               )}
