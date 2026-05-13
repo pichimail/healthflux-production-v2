@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -60,26 +60,86 @@ export default function Onboarding() {
     full_name: '', date_of_birth: '', gender: '', blood_group: '', height: '',
   });
   const [selectedLang, setSelectedLang] = useState(i18n.language || 'en');
+  const userIdRef = useRef(null);
 
+  // ── Mount: check onboarding status, restore saved draft ──────────────
   useEffect(() => {
     const timeout = setTimeout(() => setChecking(false), 8000);
-    base44.auth.me()
-      .then(async () => {
-        const raw = await base44.entities.Profile.list('-created_date', 1);
-        const profiles = Array.isArray(raw) ? raw : [];
+    (async () => {
+      try {
+        const { getSupabaseClient } = await import('@/lib/db');
+        const sb = await getSupabaseClient();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) { clearTimeout(timeout); setChecking(false); return; }
+        userIdRef.current = user.id;
+
+        // Check if already completed onboarding
+        const { data: existing } = await sb.from('profiles')
+          .select('id, full_name, date_of_birth, gender, blood_group, height, onboarding_completed, preferred_language')
+          .eq('user_id', user.id)
+          .eq('relationship', 'self')
+          .maybeSingle();
+
         clearTimeout(timeout);
-        if (profiles.length > 0 && profiles[0]?.onboarding_completed) {
+
+        if (existing?.onboarding_completed) {
           navigate(createPageUrl('Dashboard'), { replace: true });
-        } else if (profiles.length > 0) {
-          setFormData(prev => ({ ...prev, full_name: profiles[0].full_name || '' }));
-          setChecking(false);
-        } else {
-          setChecking(false);
+          return;
         }
-      })
-      .catch(() => { clearTimeout(timeout); setChecking(false); });
+
+        // Restore localStorage draft first (takes priority over DB partial data)
+        const draftKey = `hf_onboarding_${user.id}`;
+        let restored = false;
+        try {
+          const saved = JSON.parse(localStorage.getItem(draftKey) || 'null');
+          if (saved) {
+            if (saved.formData) setFormData(saved.formData);
+            if (saved.selectedLang) {
+              setSelectedLang(saved.selectedLang);
+              i18n.changeLanguage(saved.selectedLang);
+            }
+            // Resume at saved step (steps 2-5 only; step 1 always safe to restore)
+            if (saved.step && saved.step >= 1 && saved.step <= 5) {
+              setStep(saved.step);
+            }
+            restored = true;
+          }
+        } catch {}
+
+        // Fall back to DB data if no draft exists
+        if (!restored && existing) {
+          setFormData({
+            full_name: existing.full_name || '',
+            date_of_birth: existing.date_of_birth || '',
+            gender: existing.gender || '',
+            blood_group: existing.blood_group || '',
+            height: existing.height ? String(existing.height) : '',
+          });
+          if (existing.preferred_language) {
+            setSelectedLang(existing.preferred_language);
+            i18n.changeLanguage(existing.preferred_language);
+          }
+        }
+
+        setChecking(false);
+      } catch {
+        clearTimeout(timeout);
+        setChecking(false);
+      }
+    })();
     return () => clearTimeout(timeout);
   }, []);
+
+  // ── Auto-save draft whenever step or form data changes ────────────────
+  useEffect(() => {
+    if (checking || !userIdRef.current) return;
+    try {
+      localStorage.setItem(
+        `hf_onboarding_${userIdRef.current}`,
+        JSON.stringify({ step, formData, selectedLang })
+      );
+    } catch {}
+  }, [step, formData, selectedLang, checking]);
 
   if (checking) {
     return (
@@ -149,6 +209,9 @@ export default function Onboarding() {
       const sb = await getSupabaseClient();
       const { data: { user } } = await sb.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Clear onboarding draft — profile is about to be finalised
+      try { localStorage.removeItem(`hf_onboarding_${user.id}`); } catch {}
 
       const profilePayload = {
         ...formData,
