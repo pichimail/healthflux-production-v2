@@ -8,18 +8,21 @@ import ExportReports from './ExportReports';
 import Subscription from './Subscription';
 import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 import { useRoutedTab } from '@/hooks/use-routed-tab';
+import { useTranslation } from 'react-i18next';
 
-const TABS = [
-  { key: 'settings', label: '⚙️ Settings' },
-  { key: 'subscription', label: '⭐ Subscription' },
-  { key: 'analytics', label: '📊 My Analytics' },
-  { key: 'export', label: '📤 Export', flag: 'export_pdf' },
+const TABS = (lang) => [
+  { key: 'settings', label: lang === 'hi' ? '⚙️ सेटिंग्स' : lang === 'te' ? '⚙️ సెట్టింగ్స్' : '⚙️ Settings' },
+  { key: 'subscription', label: lang === 'hi' ? '⭐ सदस्यता' : lang === 'te' ? '⭐ సభ్యత్వం' : '⭐ Subscription' },
+  { key: 'analytics', label: lang === 'hi' ? '📊 मेरा एनालिटिक्स' : lang === 'te' ? '📊 నా అనలిటిక్స్' : '📊 My Analytics' },
+  { key: 'export', label: lang === 'hi' ? '📤 निर्यात' : lang === 'te' ? '📤 ఎక్స్‌పోర్ట్' : '📤 Export', flag: 'export_pdf' },
 ];
 
 
 export default function AccountHub() {
+  const { i18n } = useTranslation();
+  const tabs = TABS(i18n.language);
   const { hasFeature, loading } = useFeatureFlags();
-  const visibleTabs = loading ? TABS.filter((tab) => !tab.flag) : TABS.filter((tab) => !tab.flag || hasFeature(tab.flag));
+  const visibleTabs = loading ? tabs.filter((tab) => !tab.flag) : tabs.filter((tab) => !tab.flag || hasFeature(tab.flag));
   const [activeTab, setActiveTab] = useRoutedTab({
     storageKey: 'accounthub_tab',
     defaultTab: 'settings',

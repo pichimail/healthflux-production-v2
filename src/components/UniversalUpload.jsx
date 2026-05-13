@@ -10,6 +10,7 @@ import ProcessingScreen from './documents/ProcessingScreen';
 import DocumentExtractedView from './documents/DocumentExtractedView';
 import ResponsiveOverlay from '@/components/ui/responsive-overlay';
 import { createUploadedDocument, processUploadedDocument } from '@/services/documents';
+import { useTheme } from '@/lib/ThemeContext';
 
 const ACCEPTED = 'image/*,application/pdf,.pdf,.doc,.docx,.heic,.heif';
 const MAX_MB = 25;
@@ -31,6 +32,7 @@ function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }
   const [documentId, setDocumentId] = useState(null);
   const fileRef = useRef(null);
   const cameraRef = useRef(null);
+  const { isLight } = useTheme();
 
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
@@ -105,7 +107,10 @@ function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }
           className="w-full rounded-2xl border-2 border-dashed py-6 flex flex-col items-center gap-3 transition-colors active:scale-[0.99]"
           style={{ borderColor: file ? '#d7f576' : 'var(--hf-border-strong)', backgroundColor: file ? 'rgba(215,245,118,0.05)' : 'var(--hf-surface-2)' }}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: file ? '#d7f576' : 'rgba(215,245,118,0.15)', color: file ? '#0a1200' : '#d7f576' }}>
+            style={{
+              background: file ? '#d7f576' : 'rgba(215,245,118,0.15)',
+              color: file ? '#0a1200' : (isLight ? '#000000' : '#d7f576')
+            }}>
             {fileIcon(file)}
           </div>
           {file ? (
@@ -124,7 +129,11 @@ function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }
 
         <button type="button" onClick={() => cameraRef.current?.click()}
           className="w-full rounded-2xl py-3.5 flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] font-bold text-sm"
-          style={{ background: 'rgba(215,245,118,0.08)', border: '1.5px solid rgba(215,245,118,0.3)', color: 'var(--hf-lemon-strong)' }}>
+          style={{
+            background: 'rgba(215,245,118,0.08)',
+            border: '1.5px solid rgba(215,245,118,0.3)',
+            color: isLight ? '#000000' : 'var(--hf-lemon-strong)'
+          }}>
           <Camera size={16} /> Scan with Camera
         </button>
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />

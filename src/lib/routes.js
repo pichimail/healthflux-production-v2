@@ -103,6 +103,7 @@ export const routeRegistry = [
   }),
   route("AdminAds", "/admin/ads", { requiresAdmin: true, legacyPaths: ["/AdminAds"] }),
   route("Subscription", "/subscription", { legacyPaths: ["/Subscription"] }),
+  route("Payments", "/payments", { legacyPaths: ["/Payments"] }),
 ];
 
 export const defaultAuthenticatedRoute = "/dashboard";

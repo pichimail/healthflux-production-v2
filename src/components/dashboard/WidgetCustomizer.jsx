@@ -3,6 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Settings2, GripVertical, Eye, EyeOff, X, RotateCcw } from 'lucide-react';
 import Haptics from '../utils/haptics';
 import ResponsiveOverlay from '@/components/ui/responsive-overlay';
+import { useTheme } from '@/lib/ThemeContext';
 
 export const DEFAULT_WIDGETS = [
   { id: 'health_score',  label: 'Health Score',        icon: '🏥', enabled: true,  size: 'sm' },
@@ -35,6 +36,7 @@ export function saveWidgets(widgets) {
 
 export function WidgetCustomizer({ widgets, onChange }) {
   const [open, setOpen] = useState(false);
+  const { isLight } = useTheme();
 
   const toggle = (id) => {
     Haptics.medium();
@@ -132,7 +134,10 @@ export function WidgetCustomizer({ widgets, onChange }) {
                           </div>
                           <button onClick={() => toggle(w.id)}
                             className="p-2 rounded-xl transition-all"
-                            style={{ background: w.enabled ? 'rgba(215,245,118,0.15)' : 'var(--hf-surface)', color: w.enabled ? '#d7f576' : 'var(--hf-text-muted)' }}>
+                            style={{
+                              background: w.enabled ? 'rgba(215,245,118,0.15)' : 'var(--hf-surface)',
+                              color: w.enabled ? (isLight ? '#000000' : '#d7f576') : 'var(--hf-text-muted)'
+                            }}>
                             {w.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
                           </button>
                         </div>

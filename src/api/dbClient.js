@@ -124,9 +124,8 @@ function createEntityProxy(entityName) {
      */
     async update(id, changes) {
       const result = await db.from(table)
-        .update({ ...changes, updated_date: new Date().toISOString() })
         .eq('id', id)
-        .select();
+        .update({ ...changes, updated_date: new Date().toISOString() });
       if (result.error) throw result.error;
       return result.data?.[0] || result.data;
     },
@@ -135,7 +134,7 @@ function createEntityProxy(entityName) {
      * delete(id)
      */
     async delete(id) {
-      const { error } = await db.from(table).delete().eq('id', id);
+      const { error } = await db.from(table).eq('id', id).delete();
       if (error) throw error;
       return true;
     },

@@ -7,6 +7,7 @@ import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import aiRouter from './routes/ai.js';
 import abhaRouter from './routes/abha.js';
+import paymentsRouter from './routes/payments.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,6 +28,7 @@ export const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 app.use('/api/ai', aiRouter);
 app.use('/api/abha', abhaRouter);
+app.use('/api/payments', paymentsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

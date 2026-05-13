@@ -110,6 +110,7 @@ import WellnessGoals from './pages/WellnessGoals';
 import WellnessHub from './pages/WellnessHub';
 import WellnessInsights from './pages/WellnessInsights';
 import Subscription from './pages/Subscription';
+import Payments from './pages/Payments';
 import MarketingHome from './pages/MarketingHome';
 
 
@@ -177,6 +178,7 @@ export const PAGES = {
     "WellnessHub": WellnessHub,
     "WellnessInsights": WellnessInsights,
     "Subscription": Subscription,
+    "Payments": Payments,
     "MarketingHome": MarketingHome,
 }
 

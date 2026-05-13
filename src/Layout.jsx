@@ -20,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import { Drawer } from 'vaul';
+import { useTranslation } from 'react-i18next';
 
 import { getRouteById } from '@/lib/routes';
 import { WidgetCustomizer, loadWidgets, saveWidgets } from '@/components/dashboard/WidgetCustomizer';
@@ -70,7 +71,27 @@ const GLOBAL_CHIPS = [
   { label: 'Nutrition',  page: 'Nutrition',     emoji: '🥗', chipClass: 'hf-chip-mint' },
 ];
 
+const L10N = {
+  en: { home: 'Home', health: 'Health', flux: 'Flux AI', wellness: 'Wellness', care: 'Care', account: 'Account' },
+  hi: { home: 'होम', health: 'स्वास्थ्य', flux: 'फ्लक्स AI', wellness: 'वेलनेस', care: 'केयर', account: 'अकाउंट' },
+  te: { home: 'హోమ్', health: 'ఆరోగ్యం', flux: 'ఫ్లక్స్ AI', wellness: 'వెల్నెస్', care: 'కేర్', account: 'అకౌంట్' },
+  tinglish: { home: 'Home', health: 'Health', flux: 'Flux AI', wellness: 'Wellness', care: 'Care', account: 'Account' },
+};
+
 function GlobalChipsBar({ onFluxOpen }) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language in L10N ? i18n.language : 'en';
+  const chipLabelMap = {
+    Vitals: i18n.language === 'hi' ? 'वाइटल्स' : i18n.language === 'te' ? 'వైటల్స్' : 'Vitals',
+    Meds: i18n.language === 'hi' ? 'दवाइयां' : i18n.language === 'te' ? 'మందులు' : 'Meds',
+    Records: i18n.language === 'hi' ? 'रिकॉर्ड्स' : i18n.language === 'te' ? 'రికార్డ్స్' : 'Records',
+    Insights: i18n.language === 'hi' ? 'इनसाइट्स' : i18n.language === 'te' ? 'ఇన్‌సైట్స్' : 'Insights',
+    Trends: i18n.language === 'hi' ? 'ट्रेंड्स' : i18n.language === 'te' ? 'ట్రెండ్స్' : 'Trends',
+    Labs: i18n.language === 'hi' ? 'लैब्स' : i18n.language === 'te' ? 'ల్యాబ్స్' : 'Labs',
+    Goals: i18n.language === 'hi' ? 'गोल्स' : i18n.language === 'te' ? 'గోల్స్' : 'Goals',
+    Care: L10N[lang].care,
+    Nutrition: i18n.language === 'hi' ? 'पोषण' : i18n.language === 'te' ? 'పోషణ' : 'Nutrition',
+  };
   return (
     <div
       className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3"
@@ -87,7 +108,7 @@ function GlobalChipsBar({ onFluxOpen }) {
           className={`flex-shrink-0 hf-chip ${chipClass} text-xs`}
           style={{ minHeight: 32, padding: '0.3rem 0.75rem', fontSize: '0.7rem' }}>
           <span className="hf-chip-emoji" style={{ width: '1.1rem', height: '1.1rem', fontSize: '0.75rem' }}>{emoji}</span>
-          {label}
+          {chipLabelMap[label] || label}
         </Link>
       ))}
     </div>
@@ -97,15 +118,15 @@ const NO_FAB_PAGES = ['PublicShare', 'Demo', 'Home', 'Nutrition'];
 
 // Emoji-prefixed nav matching Admin Dashboard style
 const navItems = [
-  { name: '🏠 Home',     page: 'Dashboard',   icon: LayoutDashboard, color: '#d7f576', tc: '#0a1200' },
-  { name: '❤️ Health',   page: 'HealthHub',   icon: Activity,        color: '#9bb4ff', tc: '#0a1240' },
-  { name: '⚡ Flux AI',  page: 'AIHub',       icon: Zap,             color: '#c9bbff', tc: '#1a0a40' },
-  { name: '🌿 Wellness', page: 'WellnessHub', icon: Leaf,            color: '#a8e6cf', tc: '#003d20' },
-  { name: '🩺 Care',     page: 'CareHub',     icon: Stethoscope,     color: '#f7c9a3', tc: '#3d1a00' },
+  { key: 'home', emoji: '🏠', page: 'Dashboard', icon: LayoutDashboard, color: '#d7f576', tc: '#0a1200' },
+  { key: 'health', emoji: '❤️', page: 'HealthHub', icon: Activity, color: '#9bb4ff', tc: '#0a1240' },
+  { key: 'flux', emoji: '⚡', page: 'AIHub', icon: Zap, color: '#c9bbff', tc: '#1a0a40' },
+  { key: 'wellness', emoji: '🌿', page: 'WellnessHub', icon: Leaf, color: '#a8e6cf', tc: '#003d20' },
+  { key: 'care', emoji: '🩺', page: 'CareHub', icon: Stethoscope, color: '#f7c9a3', tc: '#3d1a00' },
 ];
 
 const extraItems = [
-  { name: '👤 Account', page: 'AccountHub', icon: User, color: '#9bb4ff', tc: '#0a1240' },
+  { key: 'account', emoji: '👤', page: 'AccountHub', icon: User, color: '#9bb4ff', tc: '#0a1240' },
 ];
 
 // ── Shared ProfileRow ──
@@ -364,12 +385,22 @@ function UserLayout({ children, currentPageName }) {
   const [fluxOpen, setFluxOpen] = useState(false);
   const { anySheetOpen } = useBottomSheet();
   const { activeProfile } = useActiveProfile();
+  const { i18n } = useTranslation();
   const { dispatch: fabDispatch } = useFABDispatch();
   const mobileChromeHidden = anySheetOpen || profileSheetOpen || fluxOpen;
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const preferred = activeProfile?.preferred_language || localStorage.getItem('hf_lang');
+    if (preferred && preferred !== i18n.language) {
+      i18n.changeLanguage(preferred);
+      localStorage.setItem('hf_lang', preferred);
+      document.documentElement.lang = preferred;
+    }
+  }, [activeProfile?.preferred_language, i18n]);
 
   const handleGlobalFABAction = useCallback((key, extra) => {
     const handled = fabDispatch(key, extra);
@@ -389,6 +420,7 @@ function UserLayout({ children, currentPageName }) {
   }, [fabDispatch, navigate]);
 
   const isActive = (page) => currentPageName === page;
+  const lang = i18n.language in L10N ? i18n.language : 'en';
   const displayName = activeProfile?.full_name || user?.full_name || 'U';
   const isMainUser = !activeProfile || activeProfile.relationship === 'self';
   const allNavItems = [...navItems, ...extraItems];
@@ -486,6 +518,7 @@ function UserLayout({ children, currentPageName }) {
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto" aria-label="Main navigation">
           {allNavItems.map((item) => {
             const active = isActive(item.page);
+            const name = `${item.emoji} ${L10N[lang][item.key] || L10N.en[item.key] || item.key}`;
             return (
               <Link key={item.page} to={createPageUrl(item.page)}
                 aria-current={active ? 'page' : undefined}
@@ -497,7 +530,7 @@ function UserLayout({ children, currentPageName }) {
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                 <item.icon size={14} className="flex-shrink-0" />
-                <span>{item.name}</span>
+                <span>{name}</span>
                 {active && <div className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.tc }} />}
               </Link>
             );
@@ -506,9 +539,14 @@ function UserLayout({ children, currentPageName }) {
 
         {/* Bottom section — profile + utilities */}
         <div className="px-3 pb-4 pt-3 flex-shrink-0 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Profile row */}
-          <ProfileDropdown user={user} displayName={displayName} isMainUser={isMainUser} sidebarMode
-            widgets={widgets} setWidgets={setWidgets} />
+          {/* Profile row (read-only in sidebar; actions live in header profile menu) */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: isMainUser ? '#d7f576' : '#c9bbff' }}>
+              <span className="text-[10px] font-black" style={{ color: isMainUser ? '#0a1200' : '#1a0a40' }}>{displayName[0]}</span>
+            </div>
+            <p className="text-xs font-bold truncate" style={{ color: 'var(--hf-sidebar-text)' }}>{displayName}</p>
+          </div>
 
           {/* Utility items */}
           <button onClick={toggleTheme}
@@ -630,7 +668,7 @@ function UserLayout({ children, currentPageName }) {
           {navItems.map((item) => (
             <Link key={item.page} to={createPageUrl(item.page)}
               onClick={() => Haptics.light()}
-              aria-label={item.name}
+              aria-label={L10N[lang][item.key] || L10N.en[item.key] || item.key}
               className="flex flex-1 flex-col items-center justify-center active-press">
               <div className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all ${isActive(item.page) ? 'shadow-md' : ''}`}
                 style={{ background: isActive(item.page) ? item.color : 'transparent' }}>
@@ -640,7 +678,7 @@ function UserLayout({ children, currentPageName }) {
               </div>
               <span className="text-[8px] font-bold mt-0.5"
                 style={{ color: isActive(item.page) ? item.color : 'var(--hf-text-muted)' }}>
-                {item.name.replace(/^[^\s]+\s/, '')}
+                {L10N[lang][item.key] || L10N.en[item.key] || item.key}
               </span>
             </Link>
           ))}

@@ -62,13 +62,12 @@ function DeviceCard({ device, connectedDevice, profileId, onSync }) {
     try {
       await base44.entities.ConnectedDevice.create({
         profile_id: profileId,
-        user_email: '', // Will be auto-filled by RLS/created_by
         device_type: device.key,
         device_name: device.label,
         is_connected: true,
         last_sync: null,
       });
-      qc.invalidateQueries({ queryKey: ['connected-devices'] });
+      qc.invalidateQueries({ queryKey: ['connected-devices', profileId] });
       toast.success(`${device.label} connected.`);
     } catch (err) {
       toast.error('Connection failed: ' + err.message);
@@ -78,7 +77,7 @@ function DeviceCard({ device, connectedDevice, profileId, onSync }) {
   const disconnect = async () => {
     if (!connectedDevice) return;
     await base44.entities.ConnectedDevice.update(connectedDevice.id, { is_connected: false });
-    qc.invalidateQueries({ queryKey: ['connected-devices'] });
+    qc.invalidateQueries({ queryKey: ['connected-devices', profileId] });
     toast.info(`${device.label} disconnected.`);
   };
 
@@ -124,7 +123,7 @@ function DeviceCard({ device, connectedDevice, profileId, onSync }) {
         daily_steps: vitals.find(v => v.vital_type === 'steps')?.value || null,
       });
 
-      qc.invalidateQueries({ queryKey: ['connected-devices'] });
+      qc.invalidateQueries({ queryKey: ['connected-devices', profileId] });
       qc.invalidateQueries({ queryKey: ['vitals'] });
       toast.success(`Synced ${vitals.length} real health readings from ${device.label}`);
       onSync?.();

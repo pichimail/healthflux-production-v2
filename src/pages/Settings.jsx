@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConnectedDevicesSection from '@/components/ConnectedDevicesSection';
 import { useActiveProfile } from '@/components/ActiveProfileContext';
 import { useTheme } from '@/lib/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function Settings() {
   const { activeProfile } = useActiveProfile();
@@ -19,6 +20,7 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { isLight, toggleTheme } = useTheme();
+  const { i18n } = useTranslation();
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -321,7 +323,7 @@ export default function Settings() {
         <CardContent className="p-3 sm:p-4 space-y-3">
           {[
             { key: 'units', label: 'Measurement Units', options: ['metric', 'imperial'], default: 'metric' },
-            { key: 'language', label: 'Language', options: ['en', 'hi', 'te'], labels: ['English', 'हिंदी', 'తెలుగు'], default: 'en' },
+            { key: 'language', label: 'Language', options: ['en', 'hi', 'te', 'tinglish'], labels: ['English', 'हिंदी', 'తెలుగు', 'Tinglish'], default: 'en' },
           ].map(field => {
             const val = preferences?.regional?.[field.key] || field.default;
             return (
@@ -329,8 +331,16 @@ export default function Settings() {
                 <Label className="text-xs font-semibold" style={{ color: 'var(--hf-text)' }}>{field.label}</Label>
                 <select value={val}
                   onChange={e => {
-                    const newRegional = { ...(preferences?.regional || {}), [field.key]: e.target.value };
+                    const nextValue = e.target.value;
+                    const newRegional = { ...(preferences?.regional || {}), [field.key]: nextValue };
                     updatePreferencesMutation.mutate({ regional: newRegional });
+                    if (field.key === 'language') {
+                      i18n.changeLanguage(nextValue);
+                      localStorage.setItem('hf_lang', nextValue);
+                      if (activeProfile?.id) {
+                        base44.entities.Profile.update(activeProfile.id, { preferred_language: nextValue }).catch(() => {});
+                      }
+                    }
                   }}
                   className="h-8 px-2 rounded-xl text-xs font-bold outline-none"
                   style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
@@ -345,7 +355,7 @@ export default function Settings() {
       </Card>
 
       {/* Connected Devices */}
-      <ConnectedDevicesSection userEmail={user?.email} profileId={activeProfile?.id} />
+      <ConnectedDevicesSection profileId={activeProfile?.id} />
 
       {/* Danger Zone */}
       <Card className="rounded-2xl sm:rounded-3xl mt-4" style={{ background: 'rgba(242,140,140,0.06)', border: '1px solid rgba(242,140,140,0.25)' }}>
