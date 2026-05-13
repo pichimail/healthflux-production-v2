@@ -113,8 +113,10 @@ export async function extractDataFromFile({ file_url, json_schema, fileUrl, json
 }
 
 export async function uploadFile(file, opts = {}) {
-  const { default: db } = await import('@/lib/db');
-  const { data: { user } } = await db.auth.getUser();
+  // Use getSupabaseClient directly — db.storage is not exposed on the DBClient wrapper
+  const { getSupabaseClient } = await import('@/lib/db');
+  const sb = await getSupabaseClient();
+  const { data: { user } } = await sb.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const ts = Date.now();
@@ -122,7 +124,7 @@ export async function uploadFile(file, opts = {}) {
   const bucket = opts.bucket || 'healthflux-documents';
   const path = `${user.id}/${opts.folder || 'general'}/${ts}-${safeName}`;
 
-  const { data, error } = await db.storage.from(bucket).upload(path, file, {
+  const { data, error } = await sb.storage.from(bucket).upload(path, file, {
     cacheControl: '3600', upsert: false,
     contentType: file.type || 'application/octet-stream',
   });
@@ -131,9 +133,9 @@ export async function uploadFile(file, opts = {}) {
   const isPublic = bucket !== 'healthflux-documents';
   let url;
   if (isPublic) {
-    url = db.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
+    url = sb.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
   } else {
-    const { data: signed } = await db.storage.from(bucket).createSignedUrl(data.path, 3600);
+    const { data: signed } = await sb.storage.from(bucket).createSignedUrl(data.path, 3600);
     url = signed?.signedUrl || data.path;
   }
 

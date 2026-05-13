@@ -163,9 +163,38 @@ router.post('/extract-family', wrap(async (b) => {
 }));
 
 router.post('/extract-insurance', wrap(async (b) => {
-  const system = `You are a health insurance document specialist. Extract ALL family member information accurately. Return policy_number, insurer, plan_name, valid_from, valid_to, sum_insured, and a members array with full_name, relationship, date_of_birth, gender, age, blood_group for each person listed.`;
-  const user = `Extract complete family member data from this health insurance document.`;
-  return callAIJSON('extractInsuranceData', system, user, { imageUrls: [b.imageUrl || b.fileUrl || b.file_url] });
+  const system = `You are a health insurance document specialist. Extract ALL family member information with maximum accuracy.
+Return ONLY a valid JSON object with this exact structure (no extra text):
+{
+  "policy_number": "string or null",
+  "insurer": "string or null",
+  "plan_name": "string or null",
+  "valid_from": "YYYY-MM-DD or null",
+  "valid_to": "YYYY-MM-DD or null",
+  "sum_insured": number_or_null,
+  "members": [
+    {
+      "full_name": "string",
+      "relationship": "self|spouse|child|parent|sibling|other",
+      "date_of_birth": "YYYY-MM-DD or null",
+      "gender": "male|female|other or null",
+      "age": number_or_null,
+      "blood_group": "A+|A-|B+|B-|AB+|AB-|O+|O- or null"
+    }
+  ]
+}
+Include the primary policyholder with relationship "self". Extract every person listed. If age is given but not DOB, calculate DOB as current year minus age. Return all members found.`;
+
+  // PDF text path — documentText is extracted client-side from the PDF
+  if (b.documentText) {
+    const user = `Extract the complete insurance policy details and ALL family members from this health insurance document text:\n\n${b.documentText}`;
+    return callAIJSON('extractInsuranceData', system, user, { imageUrls: [] });
+  }
+
+  // Image/URL path — pass file as vision input
+  const fileUrl = b.imageUrl || b.fileUrl || b.file_url;
+  const user = `Extract the complete insurance policy details and ALL family members from this health insurance document image.`;
+  return callAIJSON('extractInsuranceData', system, user, { imageUrls: fileUrl ? [fileUrl] : [] });
 }));
 
 router.post('/multi-snap', wrap(async (b) => {

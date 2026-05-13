@@ -11,7 +11,7 @@ import { User, Heart, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Upload, Loa
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';
-import { callAIVision, extractTextFromPdf, uploadFile } from '@/components/utils/aiService';
+import { extractTextFromPdf, uploadFile, extractInsuranceData } from '@/components/utils/aiService';
 
 const STEPS = [
   { id: 1, title: 'Welcome', subtitle: 'Tell us your name' },
@@ -105,78 +105,38 @@ export default function Onboarding() {
     setInsuranceData(null);
     setInsuranceReviewed(false);
     try {
-      const { url } = await uploadFile(file);
-      setInsuranceUpload({ url, name: file.name, size: file.size });
       const isPdf = (file.type || '').toLowerCase().includes('pdf') || /\.pdf$/i.test(file.name || '');
       let result;
 
       if (isPdf) {
-        const extractedText = await extractTextFromPdf(file);
-        result = await callAIVision({
-          prompt: `Extract ALL family member information from this health insurance document text.
-Return JSON with this exact structure:
-{
-  "policy_number": "string",
-  "insurer": "string", 
-  "plan_name": "string",
-  "valid_from": "date",
-  "valid_to": "date",
-  "sum_insured": "number",
-  "members": [
-    {
-      "full_name": "string",
-      "relationship": "self|spouse|child|parent|sibling|other",
-      "date_of_birth": "YYYY-MM-DD or null",
-      "gender": "male|female|other",
-      "age": "number or null",
-      "blood_group": "string or null"
-    }
-  ]
-}
-Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".
-
-DOCUMENT_TEXT_START
-${extractedText}
-DOCUMENT_TEXT_END`,
-          response_json_schema: true,
-          functionName: 'extractInsuranceData',
-        });
+        // Upload PDF for storage reference (non-blocking parallel with text extraction)
+        const [uploadResult, extractedText] = await Promise.all([
+          uploadFile(file).catch(() => null),
+          extractTextFromPdf(file),
+        ]);
+        if (uploadResult) setInsuranceUpload({ url: uploadResult.url, name: file.name, size: file.size });
+        if (!extractedText || extractedText.trim().length < 50) {
+          throw new Error('Could not extract readable text from this PDF. It may be a scanned document — please upload a photo of your insurance card instead.');
+        }
+        result = await extractInsuranceData({ documentText: extractedText });
       } else {
-        result = await callAIVision({
-        prompt: `Extract ALL family member information from this health insurance document.
-Return JSON with this exact structure:
-{
-  "policy_number": "string",
-  "insurer": "string", 
-  "plan_name": "string",
-  "valid_from": "date",
-  "valid_to": "date",
-  "sum_insured": "number",
-  "members": [
-    {
-      "full_name": "string",
-      "relationship": "self|spouse|child|parent|sibling|other",
-      "date_of_birth": "YYYY-MM-DD or null",
-      "gender": "male|female|other",
-      "age": "number or null",
-      "blood_group": "string or null"
-    }
-  ]
-}
-Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".`,
-        file_urls: [url],
-        response_json_schema: true,
-        functionName: 'extractInsuranceData',
-      });
+        // Image upload — upload first, then send URL to AI vision
+        const uploadResult = await uploadFile(file);
+        setInsuranceUpload({ url: uploadResult.url, name: file.name, size: file.size });
+        result = await extractInsuranceData({ fileUrl: uploadResult.url });
       }
+
       const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+      if (!parsed || !Array.isArray(parsed.members)) {
+        throw new Error('AI could not extract insurance details. Please try a clearer image or PDF.');
+      }
       setInsuranceData(parsed);
-      if (parsed?.members?.[0]?.full_name && !formData.full_name) {
+      if (parsed.members?.[0]?.full_name && !formData.full_name) {
         setFormData(prev => ({ ...prev, full_name: parsed.members[0].full_name }));
       }
     } catch (err) {
       console.error('Insurance extraction failed:', err);
-      setInsuranceError('Insurance upload or extraction failed. Please retry with a clear image/PDF.');
+      setInsuranceError(err.message || 'Insurance upload or extraction failed. Please retry with a clear image/PDF.');
     }
     setInsuranceProcessing(false);
   };
@@ -468,53 +428,92 @@ Extract every family member listed. If age is given but not DOB, estimate DOB. I
 
                   {insuranceData && (
                     <div className="rounded-2xl p-4 space-y-3" style={{ background: `${theme.bg}15`, border: `1px solid ${theme.bg}40` }}>
+                      {/* Policy header */}
                       <div className="flex items-center gap-2">
                         <Shield className="w-5 h-5" style={{ color: theme.bg }} />
-                        <span className="font-bold text-sm">{insuranceData.insurer || 'Insurance'}</span>
+                        <span className="font-bold text-sm">{insuranceData.insurer || 'Insurance Document'}</span>
                         <Check className="w-4 h-4 ml-auto" style={{ color: '#22c55e' }} />
                       </div>
-                      {insuranceData.plan_name && (
-                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Plan: {insuranceData.plan_name}</p>
-                      )}
-                      {insuranceData.sum_insured && (
-                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Sum Insured: ₹{Number(insuranceData.sum_insured).toLocaleString()}</p>
-                      )}
-                      {insuranceUpload?.name && (
-                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
-                          Uploaded: {insuranceUpload.name}
-                        </p>
-                      )}
-                      <div className="pt-1">
-                        <p className="text-xs font-medium mb-1">Family Members Found ({insuranceData.members?.length || 0}):</p>
-                        {insuranceData.members?.map((m, i) => (
-                          <div key={i} className="flex items-center gap-2 py-1 text-xs">
-                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                              style={{ background: PASTEL_STEPS[i % PASTEL_STEPS.length].bg, color: PASTEL_STEPS[i % PASTEL_STEPS.length].text }}>
-                              {m.full_name?.[0] || '?'}
-                            </div>
-                            <span className="font-medium">{m.full_name}</span>
-                            <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: 'var(--hf-border)' }}>
-                              {m.relationship}
-                            </span>
-                            {m.age && <span style={{ color: 'var(--hf-text-muted)' }}>Age {m.age}</span>}
+
+                      {/* Policy details */}
+                      <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'var(--hf-surface-2)' }}>
+                        {insuranceData.plan_name && (
+                          <div className="flex justify-between text-xs">
+                            <span style={{ color: 'var(--hf-text-muted)' }}>Plan</span>
+                            <span className="font-medium">{insuranceData.plan_name}</span>
                           </div>
-                        ))}
+                        )}
+                        {insuranceData.policy_number && (
+                          <div className="flex justify-between text-xs">
+                            <span style={{ color: 'var(--hf-text-muted)' }}>Policy No.</span>
+                            <span className="font-medium font-mono">{insuranceData.policy_number}</span>
+                          </div>
+                        )}
+                        {insuranceData.sum_insured && (
+                          <div className="flex justify-between text-xs">
+                            <span style={{ color: 'var(--hf-text-muted)' }}>Sum Insured</span>
+                            <span className="font-medium">₹{Number(insuranceData.sum_insured).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {insuranceData.valid_from && (
+                          <div className="flex justify-between text-xs">
+                            <span style={{ color: 'var(--hf-text-muted)' }}>Validity</span>
+                            <span className="font-medium">{insuranceData.valid_from} → {insuranceData.valid_to || '—'}</span>
+                          </div>
+                        )}
+                        {insuranceUpload?.name && (
+                          <div className="flex justify-between text-xs">
+                            <span style={{ color: 'var(--hf-text-muted)' }}>File</span>
+                            <span className="font-medium truncate max-w-[160px]">{insuranceUpload.name}</span>
+                          </div>
+                        )}
                       </div>
-                      <label className="flex items-center gap-2 text-xs">
+
+                      {/* Family members preview — full details */}
+                      <div>
+                        <p className="text-xs font-semibold mb-2">Family Members Extracted ({insuranceData.members?.length || 0})</p>
+                        <div className="space-y-2">
+                          {insuranceData.members?.map((m, i) => (
+                            <div key={i} className="rounded-xl p-3" style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                                  style={{ background: PASTEL_STEPS[i % PASTEL_STEPS.length].bg, color: PASTEL_STEPS[i % PASTEL_STEPS.length].text }}>
+                                  {m.full_name?.[0] || '?'}
+                                </div>
+                                <span className="font-semibold text-sm">{m.full_name || '—'}</span>
+                                <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
+                                  style={{ background: `${theme.bg}30`, color: theme.text }}>
+                                  {m.relationship}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-1 text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>
+                                {m.gender && <span>👤 {m.gender}</span>}
+                                {(m.age || m.date_of_birth) && <span>🎂 {m.date_of_birth || `Age ${m.age}`}</span>}
+                                {m.blood_group && <span>🩸 {m.blood_group}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Mandatory review confirmation */}
+                      <label className="flex items-start gap-2 text-xs cursor-pointer p-2 rounded-xl"
+                        style={{ background: insuranceReviewed ? `${theme.bg}20` : 'transparent', border: `1px solid ${insuranceReviewed ? theme.bg : 'var(--hf-border)'}` }}>
                         <input
                           type="checkbox"
                           checked={insuranceReviewed}
                           onChange={(e) => setInsuranceReviewed(e.target.checked)}
+                          className="mt-0.5"
                         />
-                        <span>I reviewed the extracted details and confirm they are correct.</span>
+                        <span className="font-medium">I have reviewed all the extracted details above and confirm they are correct. These will be saved to family profiles.</span>
                       </label>
                       {!insuranceReviewed && (
-                        <p className="text-xs" style={{ color: 'var(--hf-coral-strong)' }}>
-                          Please confirm extracted details to proceed.
+                        <p className="text-xs font-medium" style={{ color: 'var(--hf-coral-strong)' }}>
+                          ⚠ Please review and confirm the extracted details to proceed to the next step.
                         </p>
                       )}
                       <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); setInsuranceReviewed(false); setInsuranceError(''); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
-                        Remove & upload different document
+                        Remove &amp; upload different document
                       </button>
                     </div>
                   )}
