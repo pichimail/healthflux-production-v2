@@ -1,21 +1,17 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import db from '@/lib/db';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  User, Heart, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Upload, Loader2, Shield
-} from 'lucide-react';
+import { User, Heart, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Upload, Loader2, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';
-import { callAIVision, uploadFile, extractInsuranceData } from '@/components/utils/aiService';
-import { toast } from 'sonner';
+import { callAIVision, extractTextFromPdf, uploadFile } from '@/components/utils/aiService';
 
 const STEPS = [
   { id: 1, title: 'Welcome', subtitle: 'Tell us your name' },
@@ -56,52 +52,32 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [insuranceProcessing, setInsuranceProcessing] = useState(false);
-  const [insuranceUpload, setInsuranceUpload] = useState(null);
   const [insuranceData, setInsuranceData] = useState(null);
+  const [insuranceUpload, setInsuranceUpload] = useState(null);
+  const [insuranceError, setInsuranceError] = useState('');
   const [insuranceReviewed, setInsuranceReviewed] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '', date_of_birth: '', gender: '', blood_group: '', height: '',
   });
   const [selectedLang, setSelectedLang] = useState(i18n.language || 'en');
-  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setChecking(false), 8000);
-    (async () => {
-      try {
-        const { data: { user } } = await db.auth.getUser();
-        if (!user) {
-          clearTimeout(timeout);
-          navigate(createPageUrl('Landing'), { replace: true });
-          return;
-        }
-        setCurrentUser(user);
-
-        // Check if a self-profile already exists with onboarding_completed
-        const { data: profiles } = await db.from('profiles')
-          .select('id, full_name, onboarding_completed, relationship')
-          .eq('user_id', user.id)
-          .limit(5);
-
-        const selfProfile = profiles?.find(p => p.relationship === 'self');
-
+    base44.auth.me()
+      .then(async () => {
+        const raw = await base44.entities.Profile.list('-created_date', 1);
+        const profiles = Array.isArray(raw) ? raw : [];
         clearTimeout(timeout);
-        if (selfProfile?.onboarding_completed) {
+        if (profiles.length > 0 && profiles[0]?.onboarding_completed) {
           navigate(createPageUrl('Dashboard'), { replace: true });
+        } else if (profiles.length > 0) {
+          setFormData(prev => ({ ...prev, full_name: profiles[0].full_name || '' }));
+          setChecking(false);
         } else {
-          if (selfProfile?.full_name) {
-            setFormData(prev => ({ ...prev, full_name: selfProfile.full_name }));
-          } else if (user.user_metadata?.full_name) {
-            setFormData(prev => ({ ...prev, full_name: user.user_metadata.full_name }));
-          }
           setChecking(false);
         }
-      } catch (err) {
-        console.error('Onboarding check error:', err);
-        clearTimeout(timeout);
-        setChecking(false);
-      }
-    })();
+      })
+      .catch(() => { clearTimeout(timeout); setChecking(false); });
     return () => clearTimeout(timeout);
   }, []);
 
@@ -125,20 +101,27 @@ export default function Onboarding() {
     const file = e.target.files?.[0];
     if (!file) return;
     setInsuranceProcessing(true);
+    setInsuranceError('');
+    setInsuranceData(null);
+    setInsuranceReviewed(false);
     try {
-      const uploadResult = await uploadFile(file);
-      setInsuranceUpload(uploadResult);
+      const { url } = await uploadFile(file);
+      setInsuranceUpload({ url, name: file.name, size: file.size });
+      const isPdf = (file.type || '').toLowerCase().includes('pdf') || /\.pdf$/i.test(file.name || '');
+      let result;
 
-      const result = await callAIVision({
-        prompt: `Extract ALL family member information from this health insurance document.
+      if (isPdf) {
+        const extractedText = await extractTextFromPdf(file);
+        result = await callAIVision({
+          prompt: `Extract ALL family member information from this health insurance document text.
 Return JSON with this exact structure:
 {
   "policy_number": "string",
-  "insurer": "string",
+  "insurer": "string", 
   "plan_name": "string",
-  "valid_from": "YYYY-MM-DD or null",
-  "valid_to": "YYYY-MM-DD or null",
-  "sum_insured": "number or null",
+  "valid_from": "date",
+  "valid_to": "date",
+  "sum_insured": "number",
   "members": [
     {
       "full_name": "string",
@@ -150,87 +133,110 @@ Return JSON with this exact structure:
     }
   ]
 }
-Extract every family member listed. If age is given but not DOB, calculate DOB. Include the policyholder as "self".`,
-        file_urls: [uploadResult.url],
+Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".
+
+DOCUMENT_TEXT_START
+${extractedText}
+DOCUMENT_TEXT_END`,
+          response_json_schema: true,
+          functionName: 'extractInsuranceData',
+        });
+      } else {
+        result = await callAIVision({
+        prompt: `Extract ALL family member information from this health insurance document.
+Return JSON with this exact structure:
+{
+  "policy_number": "string",
+  "insurer": "string", 
+  "plan_name": "string",
+  "valid_from": "date",
+  "valid_to": "date",
+  "sum_insured": "number",
+  "members": [
+    {
+      "full_name": "string",
+      "relationship": "self|spouse|child|parent|sibling|other",
+      "date_of_birth": "YYYY-MM-DD or null",
+      "gender": "male|female|other",
+      "age": "number or null",
+      "blood_group": "string or null"
+    }
+  ]
+}
+Extract every family member listed. If age is given but not DOB, estimate DOB. Include the policyholder as "self".`,
+        file_urls: [url],
         response_json_schema: true,
         functionName: 'extractInsuranceData',
       });
+      }
       const parsed = typeof result === 'string' ? JSON.parse(result) : result;
       setInsuranceData(parsed);
       if (parsed?.members?.[0]?.full_name && !formData.full_name) {
         setFormData(prev => ({ ...prev, full_name: parsed.members[0].full_name }));
       }
-      setInsuranceReviewed(true);
-      toast.success('Insurance document processed');
     } catch (err) {
       console.error('Insurance extraction failed:', err);
-      toast.error('Could not read insurance — you can skip and continue');
+      setInsuranceError('Insurance upload or extraction failed. Please retry with a clear image/PDF.');
     }
     setInsuranceProcessing(false);
   };
 
   const handleSubmit = async () => {
-    if (!currentUser) {
-      toast.error('Session lost — please sign in again');
-      navigate(createPageUrl('Landing'));
-      return;
-    }
     setLoading(true);
     try {
-      // Check if a self-profile already exists (auto-created by trigger)
+      // Get current user for user_id (required by RLS)
+      const { default: db } = await import('@/lib/db');
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const profilePayload = {
+        ...formData,
+        relationship: 'self',
+        height: formData.height ? parseFloat(formData.height) : undefined,
+        onboarding_completed: true,
+        preferred_language: selectedLang || 'en',
+        insurance_provider: insuranceData?.insurer || undefined,
+        insurance_policy_number: insuranceData?.policy_number || undefined,
+        insurance_plan_name: insuranceData?.plan_name || undefined,
+        insurance_valid_from: insuranceData?.valid_from || undefined,
+        insurance_valid_to: insuranceData?.valid_to || undefined,
+        insurance_sum_insured: insuranceData?.sum_insured ? Number(insuranceData.sum_insured) : undefined,
+        insurance_document_url: insuranceUpload?.url || undefined,
+        plan_type: 'free',
+        subscription_status: 'active',
+        user_id: user.id,
+        created_by: user.email,
+      };
+
+      // Check if auto-created profile exists (from handle_new_user trigger)
       const { data: existing } = await db.from('profiles')
         .select('id')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .eq('relationship', 'self')
         .maybeSingle();
 
-      const profilePayload = {
-        full_name: formData.full_name?.trim(),
-        date_of_birth: formData.date_of_birth || null,
-        gender: formData.gender || null,
-        blood_group: formData.blood_group || null,
-        height: formData.height ? parseFloat(formData.height) : null,
-        relationship: 'self',
-        onboarding_completed: true,
-        preferred_language: selectedLang || 'en',
-        insurance_provider: insuranceData?.insurer || null,
-        insurance_policy_number: insuranceData?.policy_number || null,
-        insurance_plan_name: insuranceData?.plan_name || null,
-        insurance_valid_from: insuranceData?.valid_from || null,
-        insurance_valid_to: insuranceData?.valid_to || null,
-        insurance_sum_insured: insuranceData?.sum_insured ? Number(insuranceData.sum_insured) : null,
-        insurance_document_url: insuranceUpload?.url || null,
-        user_id: currentUser.id,
-        created_by: currentUser.email,
-      };
-
-      let savedProfile;
+      let profile;
       if (existing?.id) {
-        // Update the auto-created profile
         const { data, error } = await db.from('profiles')
           .update(profilePayload)
           .eq('id', existing.id)
-          .select()
-          .single();
+          .select().single();
         if (error) throw error;
-        savedProfile = data;
+        profile = data;
       } else {
-        // Insert new (rare — trigger should have created it)
         const { data, error } = await db.from('profiles')
           .insert(profilePayload)
-          .select()
-          .single();
+          .select().single();
         if (error) throw error;
-        savedProfile = data;
+        profile = data;
       }
 
-      // Save the insurance document record if uploaded
       if (insuranceUpload?.url) {
         try {
           await db.from('medical_documents').insert({
-            profile_id: savedProfile?.id,
-            user_id: currentUser.id,
-            created_by: currentUser.email,
+            profile_id: profile?.id,
+            user_id: user.id,
+            created_by: user.email,
             title: insuranceData?.insurer
               ? `${insuranceData.insurer} Insurance Document`
               : insuranceUpload.name || 'Insurance Document',
@@ -241,49 +247,49 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               ? `Policy: ${insuranceData.policy_number || 'N/A'} | Members detected: ${insuranceData.members?.length || 0}`
               : 'Uploaded during onboarding',
             ai_tags: ['insurance', 'onboarding'],
+            metadata: {
+              policy_number: insuranceData?.policy_number || null,
+              insurer: insuranceData?.insurer || null,
+              plan_name: insuranceData?.plan_name || null,
+              valid_from: insuranceData?.valid_from || null,
+              valid_to: insuranceData?.valid_to || null,
+              sum_insured: insuranceData?.sum_insured || null,
+            },
           });
         } catch (docErr) {
-          console.warn('Insurance doc record skipped:', docErr.message);
+          console.error('Insurance document record creation failed:', docErr);
         }
       }
 
-      // Auto-create family member profiles from insurance
+      // If insurance data has family members, auto-create them
       if (insuranceData?.members?.length > 1) {
         for (const member of insuranceData.members) {
           if (member.relationship === 'self') continue;
           try {
             await db.from('profiles').insert({
-              user_id: currentUser.id,
-              created_by: currentUser.email,
               full_name: member.full_name,
               relationship: member.relationship || 'other',
-              date_of_birth: member.date_of_birth || null,
-              gender: member.gender || null,
-              blood_group: member.blood_group || null,
+              date_of_birth: member.date_of_birth || undefined,
+              gender: member.gender || undefined,
+              blood_group: member.blood_group || undefined,
+              user_id: user.id,
+              created_by: user.email,
             });
-          } catch (memberErr) {
-            console.warn('Family member skipped:', memberErr.message);
-          }
+          } catch {}
         }
-        toast.success('Profile + family members created!');
         navigate(createPageUrl('Dashboard'), { replace: true });
       } else {
-        toast.success('Profile saved');
-        go(6); // manual family member step
+        go(6); // Go to manual family member step
       }
     } catch (err) {
       console.error('Profile creation failed:', err);
       const msg = err?.message || 'Unknown error';
-      // Surface specific RLS / DB errors clearly
       if (msg.includes('stack depth') || msg.includes('54001')) {
-        toast.error('Database policies need updating. Contact support.');
-      } else if (msg.includes('row-level security')) {
-        toast.error('Access denied — please sign out and sign back in.');
+        window.alert('Database configuration error. Run the latest migration SQL.');
       } else if (msg.includes('duplicate')) {
-        toast.warning('Profile already exists');
         navigate(createPageUrl('Dashboard'), { replace: true });
       } else {
-        toast.error(`Could not save: ${msg.slice(0, 100)}`);
+        window.alert(`Failed to create profile: ${msg.slice(0, 120)}`);
       }
     }
     setLoading(false);
@@ -294,6 +300,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
     if (step === 4) {
       if (insuranceProcessing) return false;
       if (insuranceUpload && !insuranceData) return false;
+      if (insuranceData && !insuranceReviewed) return false;
     }
     return true;
   };
@@ -302,6 +309,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--hf-bg)', color: 'var(--hf-text)' }}>
+      {/* Progress */}
       <div className="px-4 pt-6 pb-2">
         <div className="flex gap-1.5">
           {STEPS.map((s, i) => (
@@ -316,9 +324,11 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
 
       <div className="flex-1 px-4 pb-4 overflow-y-auto">
         <AnimatePresence mode="wait" custom={dir}>
-          <motion.div key={step} custom={dir} variants={variants} initial="enter" animate="center" exit="exit"
+          <motion.div key={step} custom={dir} variants={variants}
+            initial="enter" animate="center" exit="exit"
             transition={{ duration: 0.25 }} className="max-w-md mx-auto w-full">
 
+            {/* STEP 1: Name */}
             {step === 1 && (
               <div className="space-y-6 pt-8">
                 <div className="text-center space-y-2">
@@ -336,6 +346,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               </div>
             )}
 
+            {/* STEP 2: About */}
             {step === 2 && (
               <div className="space-y-4 pt-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -363,6 +374,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               </div>
             )}
 
+            {/* STEP 3: Health */}
             {step === 3 && (
               <div className="space-y-4 pt-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -389,6 +401,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               </div>
             )}
 
+            {/* STEP 4: Language + Insurance */}
             {step === 4 && (
               <div className="space-y-5 pt-6">
                 <div className="flex items-center gap-3 mb-2">
@@ -398,6 +411,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
                   <div><h2 className="font-bold text-lg">Language & Insurance</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Choose your language</p></div>
                 </div>
 
+                {/* Language Selection */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">App Language</Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -416,17 +430,23 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
                   </div>
                 </div>
 
+                {/* Insurance Upload (Optional) */}
                 <div className="pt-2">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm font-medium">Health Insurance Document</Label>
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--hf-border)', color: 'var(--hf-text-muted)' }}>Optional</span>
                   </div>
                   <p className="text-xs mb-3" style={{ color: 'var(--hf-text-muted)' }}>
-                    Upload your family health insurance card. We'll auto-extract family member details.
+                    Upload your family health insurance card/document. We'll auto-extract family member details and create profiles for everyone.
                   </p>
+                  {insuranceError && (
+                    <p className="text-xs mb-2" style={{ color: 'var(--hf-coral-strong)' }}>
+                      {insuranceError}
+                    </p>
+                  )}
 
                   {!insuranceData && (
-                    <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed cursor-pointer transition-all"
+                    <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed cursor-pointer hover:border-opacity-100 transition-all"
                       style={{ borderColor: 'var(--hf-border)' }}>
                       {insuranceProcessing ? (
                         <div className="flex flex-col items-center gap-2">
@@ -459,6 +479,11 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
                       {insuranceData.sum_insured && (
                         <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Sum Insured: ₹{Number(insuranceData.sum_insured).toLocaleString()}</p>
                       )}
+                      {insuranceUpload?.name && (
+                        <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
+                          Uploaded: {insuranceUpload.name}
+                        </p>
+                      )}
                       <div className="pt-1">
                         <p className="text-xs font-medium mb-1">Family Members Found ({insuranceData.members?.length || 0}):</p>
                         {insuranceData.members?.map((m, i) => (
@@ -475,8 +500,21 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
-                        Remove & upload different
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={insuranceReviewed}
+                          onChange={(e) => setInsuranceReviewed(e.target.checked)}
+                        />
+                        <span>I reviewed the extracted details and confirm they are correct.</span>
+                      </label>
+                      {!insuranceReviewed && (
+                        <p className="text-xs" style={{ color: 'var(--hf-coral-strong)' }}>
+                          Please confirm extracted details to proceed.
+                        </p>
+                      )}
+                      <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); setInsuranceReviewed(false); setInsuranceError(''); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
+                        Remove & upload different document
                       </button>
                     </div>
                   )}
@@ -484,13 +522,14 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               </div>
             )}
 
+            {/* STEP 5: Review */}
             {step === 5 && (
               <div className="space-y-4 pt-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: theme.bg }}>
                     <Check className="w-5 h-5" style={{ color: theme.text }} />
                   </div>
-                  <div><h2 className="font-bold text-lg">Done!</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Review your details</p></div>
+                  <div><h2 className="font-bold text-lg">{t('common.done')}!</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Review your details</p></div>
                 </div>
                 <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--hf-card)' }}>
                   {[
@@ -511,6 +550,7 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
               </div>
             )}
 
+            {/* STEP 6: Family Members */}
             {step === 6 && (
               <FamilyMemberSetup onDone={() => navigate(createPageUrl('Dashboard'), { replace: true })} />
             )}
@@ -518,18 +558,19 @@ Extract every family member listed. If age is given but not DOB, calculate DOB. 
         </AnimatePresence>
       </div>
 
+      {/* Navigation buttons */}
       {step < 6 && (
         <div className="px-4 pb-6 pt-2 max-w-md mx-auto w-full flex gap-3">
           {step > 1 && (
             <Button variant="outline" onClick={() => go(step - 1)} className="flex-1 h-12 rounded-xl">
-              <ArrowLeft className="mr-1 h-4 w-4" /> Back
+              <ArrowLeft className="mr-1 h-4 w-4" /> {t('common.back')}
             </Button>
           )}
           {step < 5 && (
             <Button onClick={() => go(step + 1)} disabled={!canNext()}
               className="flex-1 h-12 rounded-xl font-semibold"
               style={{ background: theme.bg, color: theme.text }}>
-              Next <ArrowRight className="ml-1 h-4 w-4" />
+              {t('common.next')} <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           )}
           {step === 5 && (
