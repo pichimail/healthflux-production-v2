@@ -233,9 +233,10 @@ export default function Onboarding() {
       };
 
       // Check if auto-created profile exists (from handle_new_user trigger)
+      // Use created_by + relationship — user_id may be NULL on trigger-created profiles
       const { data: existing } = await sb.from('profiles')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('created_by', user.email)
         .eq('relationship', 'self')
         .maybeSingle();
 
@@ -261,29 +262,20 @@ export default function Onboarding() {
         try {
           await sb.from('medical_documents').insert({
             profile_id: profile?.id,
-            user_id: user.id,
             created_by: user.email,
             title: insuranceData?.insurer
               ? `${insuranceData.insurer} Insurance Document`
               : insuranceUpload.name || 'Insurance Document',
             document_type: 'insurance',
             file_url: insuranceUpload.url,
-            status: 'completed',
+            status: 'processed',
             ai_summary: insuranceData
               ? `Policy: ${insuranceData.policy_number || 'N/A'} | Members detected: ${insuranceData.members?.length || 0}`
               : 'Uploaded during onboarding',
             ai_tags: ['insurance', 'onboarding'],
-            metadata: {
-              policy_number: insuranceData?.policy_number || null,
-              insurer: insuranceData?.insurer || null,
-              plan_name: insuranceData?.plan_name || null,
-              valid_from: insuranceData?.valid_from || null,
-              valid_to: insuranceData?.valid_to || null,
-              sum_insured: insuranceData?.sum_insured || null,
-            },
           });
         } catch (docErr) {
-          console.error('Insurance document record creation failed:', docErr);
+          // Non-critical: document record creation failed but onboarding can continue
         }
       }
 
@@ -293,12 +285,12 @@ export default function Onboarding() {
         for (const member of familyMembers) {
           try {
             // Skip if a profile with same name already exists under this user
-            const { data: dup } = await sb.from('profiles')
+            // RLS filters by created_by so no need for user_id filter
+            const { data: dups } = await sb.from('profiles')
               .select('id')
-              .eq('user_id', user.id)
               .ilike('full_name', member.full_name.trim())
-              .maybeSingle();
-            if (dup?.id) continue;
+              .limit(1);
+            if (dups?.length > 0) continue;
 
             await sb.from('profiles').insert({
               full_name: member.full_name.trim(),
@@ -306,12 +298,11 @@ export default function Onboarding() {
               date_of_birth: member.date_of_birth || null,
               gender: member.gender || null,
               blood_group: member.blood_group || null,
-              age: member.age || null,
               user_id: user.id,
               created_by: user.email,
             });
-          } catch (memberErr) {
-            console.error(`Failed to create profile for ${member.full_name}:`, memberErr);
+          } catch {
+            // Non-critical: skip individual member failures, continue with others
           }
         }
         navigate(createPageUrl('Dashboard'), { replace: true });

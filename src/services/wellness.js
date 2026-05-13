@@ -77,7 +77,6 @@ export async function getDailyHealthGoals(profileId) {
     const response = await Promise.race([fetchPromise, timeoutPromise]);
     return normalizeDailyHealthGoals(unwrapResponse(response));
   } catch (e) {
-    console.warn('getDailyHealthGoals failed:', e.message);
     return null;
   }
 }

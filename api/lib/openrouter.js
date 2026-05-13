@@ -44,8 +44,9 @@ export const MODEL_MAP = {
   aiDocumentSearch:       'google/gemini-2.0-flash-001',
   aiTagDocument:          'google/gemini-2.0-flash-001',
   aiService:              'google/gemini-2.0-flash-001',
-  dailyHealthGoals:       'google/gemini-2.0-flash-001',
-  extractFamilyProfiles:  'google/gemini-2.0-flash-001',
+  // Claude Sonnet 4 for these to avoid Gemini Flash 429 rate limits
+  dailyHealthGoals:       'anthropic/claude-sonnet-4',
+  extractFamilyProfiles:  'anthropic/claude-sonnet-4',
   parseVoiceLog:          'google/gemini-2.0-flash-001',
   semanticDocumentSearch: 'google/gemini-2.0-flash-001',
   default:                'google/gemini-2.0-flash-001',
