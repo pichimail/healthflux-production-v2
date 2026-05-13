@@ -144,9 +144,10 @@ export default function Onboarding() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Get current user for user_id (required by RLS)
-      const { default: db } = await import('@/lib/db');
-      const { data: { user } } = await db.auth.getUser();
+      // Use raw Supabase client throughout — DBClient wrapper lacks maybeSingle/chained select
+      const { getSupabaseClient } = await import('@/lib/db');
+      const sb = await getSupabaseClient();
+      const { data: { user } } = await sb.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const profilePayload = {
@@ -169,7 +170,7 @@ export default function Onboarding() {
       };
 
       // Check if auto-created profile exists (from handle_new_user trigger)
-      const { data: existing } = await db.from('profiles')
+      const { data: existing } = await sb.from('profiles')
         .select('id')
         .eq('user_id', user.id)
         .eq('relationship', 'self')
@@ -177,23 +178,25 @@ export default function Onboarding() {
 
       let profile;
       if (existing?.id) {
-        const { data, error } = await db.from('profiles')
+        const { data, error } = await sb.from('profiles')
           .update(profilePayload)
           .eq('id', existing.id)
-          .select().single();
+          .select()
+          .single();
         if (error) throw error;
         profile = data;
       } else {
-        const { data, error } = await db.from('profiles')
+        const { data, error } = await sb.from('profiles')
           .insert(profilePayload)
-          .select().single();
+          .select()
+          .single();
         if (error) throw error;
         profile = data;
       }
 
       if (insuranceUpload?.url) {
         try {
-          await db.from('medical_documents').insert({
+          await sb.from('medical_documents').insert({
             profile_id: profile?.id,
             user_id: user.id,
             created_by: user.email,
@@ -221,25 +224,36 @@ export default function Onboarding() {
         }
       }
 
-      // If insurance data has family members, auto-create them
-      if (insuranceData?.members?.length > 1) {
-        for (const member of insuranceData.members) {
-          if (member.relationship === 'self') continue;
+      // Auto-create family member profiles from extracted insurance data
+      const familyMembers = insuranceData?.members?.filter(m => m.relationship !== 'self' && m.full_name?.trim()) || [];
+      if (familyMembers.length > 0) {
+        for (const member of familyMembers) {
           try {
-            await db.from('profiles').insert({
-              full_name: member.full_name,
+            // Skip if a profile with same name already exists under this user
+            const { data: dup } = await sb.from('profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .ilike('full_name', member.full_name.trim())
+              .maybeSingle();
+            if (dup?.id) continue;
+
+            await sb.from('profiles').insert({
+              full_name: member.full_name.trim(),
               relationship: member.relationship || 'other',
-              date_of_birth: member.date_of_birth || undefined,
-              gender: member.gender || undefined,
-              blood_group: member.blood_group || undefined,
+              date_of_birth: member.date_of_birth || null,
+              gender: member.gender || null,
+              blood_group: member.blood_group || null,
+              age: member.age || null,
               user_id: user.id,
               created_by: user.email,
             });
-          } catch {}
+          } catch (memberErr) {
+            console.error(`Failed to create profile for ${member.full_name}:`, memberErr);
+          }
         }
         navigate(createPageUrl('Dashboard'), { replace: true });
       } else {
-        go(6); // Go to manual family member step
+        go(6); // No family members from insurance — go to manual family member step
       }
     } catch (err) {
       console.error('Profile creation failed:', err);
