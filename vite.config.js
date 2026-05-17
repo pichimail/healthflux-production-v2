@@ -20,6 +20,14 @@ export default defineConfig({
   build: {
     sourcemap: false,
     minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          recharts: ['recharts'],
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: [
@@ -27,7 +35,6 @@ export default defineConfig({
       'react-dom',
       'react/jsx-runtime',
       'recharts',
-      '@recharts/recharts'
     ],
   },
 });
