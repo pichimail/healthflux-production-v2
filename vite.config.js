@@ -18,18 +18,10 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'recharts', '@tanstack/react-query', '@supabase/supabase-js'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', 'lucide-react', 'framer-motion', 'vaul'],
-        },
-      },
-    },
     sourcemap: false,
     minify: 'esbuild',
   },
   optimizeDeps: {
-    include: ['recharts'],
+    include: ['react', 'react-dom', 'recharts'],
   },
 });
