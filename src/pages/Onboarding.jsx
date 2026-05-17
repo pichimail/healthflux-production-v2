@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FamilyMemberSetup from '@/components/onboarding/FamilyMemberSetup';
 import { extractTextFromPdf, uploadFile, extractInsuranceData } from '@/components/utils/aiService';
+import { getSupabaseClient } from '@/lib/db';   // Stable import instead of dynamic import inside functions
 
 const STEPS = [
   { id: 1, title: 'Welcome', subtitle: 'Tell us your name' },
@@ -67,8 +68,7 @@ export default function Onboarding() {
     const timeout = setTimeout(() => setChecking(false), 8000);
     (async () => {
       try {
-        const { getSupabaseClient } = await import('@/lib/db');
-        const sb = await getSupabaseClient();
+        const sb = await getSupabaseClient();   // Using stable getter
         const { data: { user } } = await sb.auth.getUser();
         if (!user) { clearTimeout(timeout); setChecking(false); return; }
         userIdRef.current = user.id;
@@ -98,7 +98,6 @@ export default function Onboarding() {
               setSelectedLang(saved.selectedLang);
               i18n.changeLanguage(saved.selectedLang);
             }
-            // Resume at saved step (steps 2-5 only; step 1 always safe to restore)
             if (saved.step && saved.step >= 1 && saved.step <= 5) {
               setStep(saved.step);
             }
@@ -106,7 +105,6 @@ export default function Onboarding() {
           }
         } catch {}
 
-        // Fall back to DB data if no draft exists
         if (!restored && existing) {
           setFormData({
             full_name: existing.full_name || '',
@@ -169,7 +167,6 @@ export default function Onboarding() {
       let result;
 
       if (isPdf) {
-        // Upload PDF for storage reference (non-blocking parallel with text extraction)
         const [uploadResult, extractedText] = await Promise.all([
           uploadFile(file).catch(() => null),
           extractTextFromPdf(file),
@@ -180,7 +177,6 @@ export default function Onboarding() {
         }
         result = await extractInsuranceData({ documentText: extractedText });
       } else {
-        // Image upload — upload first, then send URL to AI vision
         const uploadResult = await uploadFile(file);
         setInsuranceUpload({ url: uploadResult.url, name: file.name, size: file.size });
         result = await extractInsuranceData({ fileUrl: uploadResult.url });
@@ -204,13 +200,10 @@ export default function Onboarding() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Use raw Supabase client throughout — DBClient wrapper lacks maybeSingle/chained select
-      const { getSupabaseClient } = await import('@/lib/db');
-      const sb = await getSupabaseClient();
+      const sb = await getSupabaseClient();   // Using stable getter
       const { data: { user } } = await sb.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Clear onboarding draft — profile is about to be finalised
       try { localStorage.removeItem(`hf_onboarding_${user.id}`); } catch {}
 
       const profilePayload = {
@@ -232,8 +225,6 @@ export default function Onboarding() {
         created_by: user.email,
       };
 
-      // Check if auto-created profile exists (from handle_new_user trigger)
-      // Use created_by + relationship — user_id may be NULL on trigger-created profiles
       const { data: existing } = await sb.from('profiles')
         .select('id')
         .eq('created_by', user.email)
@@ -275,7 +266,7 @@ export default function Onboarding() {
             ai_tags: ['insurance', 'onboarding'],
           });
         } catch (docErr) {
-          // Non-critical: document record creation failed but onboarding can continue
+          // Non-critical
         }
       }
 
@@ -284,8 +275,6 @@ export default function Onboarding() {
       if (familyMembers.length > 0) {
         for (const member of familyMembers) {
           try {
-            // Skip if a profile with same name already exists under this user
-            // RLS filters by created_by so no need for user_id filter
             const { data: dups } = await sb.from('profiles')
               .select('id')
               .ilike('full_name', member.full_name.trim())
@@ -302,12 +291,12 @@ export default function Onboarding() {
               created_by: user.email,
             });
           } catch {
-            // Non-critical: skip individual member failures, continue with others
+            // Non-critical
           }
         }
         navigate(createPageUrl('Dashboard'), { replace: true });
       } else {
-        go(6); // No family members from insurance — go to manual family member step
+        go(6);
       }
     } catch (err) {
       console.error('Profile creation failed:', err);
@@ -439,7 +428,6 @@ export default function Onboarding() {
                   <div><h2 className="font-bold text-lg">Language & Insurance</h2><p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>Choose your language</p></div>
                 </div>
 
-                {/* Language Selection */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">App Language</Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -458,7 +446,6 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* Insurance Upload (Optional) */}
                 <div className="pt-2">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm font-medium">Health Insurance Document</Label>
@@ -496,14 +483,12 @@ export default function Onboarding() {
 
                   {insuranceData && (
                     <div className="rounded-2xl p-4 space-y-3" style={{ background: `${theme.bg}15`, border: `1px solid ${theme.bg}40` }}>
-                      {/* Policy header */}
                       <div className="flex items-center gap-2">
                         <Shield className="w-5 h-5" style={{ color: theme.bg }} />
                         <span className="font-bold text-sm">{insuranceData.insurer || 'Insurance Document'}</span>
                         <Check className="w-4 h-4 ml-auto" style={{ color: '#22c55e' }} />
                       </div>
 
-                      {/* Policy details */}
                       <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'var(--hf-surface-2)' }}>
                         {insuranceData.plan_name && (
                           <div className="flex justify-between text-xs">
@@ -537,7 +522,6 @@ export default function Onboarding() {
                         )}
                       </div>
 
-                      {/* Family members preview — full details */}
                       <div>
                         <p className="text-xs font-semibold mb-2">Family Members Extracted ({insuranceData.members?.length || 0})</p>
                         <div className="space-y-2">
@@ -564,7 +548,6 @@ export default function Onboarding() {
                         </div>
                       </div>
 
-                      {/* Mandatory review confirmation */}
                       <label className="flex items-start gap-2 text-xs cursor-pointer p-2 rounded-xl"
                         style={{ background: insuranceReviewed ? `${theme.bg}20` : 'transparent', border: `1px solid ${insuranceReviewed ? theme.bg : 'var(--hf-border)'}` }}>
                         <input
@@ -581,7 +564,7 @@ export default function Onboarding() {
                         </p>
                       )}
                       <button onClick={() => { setInsuranceData(null); setInsuranceUpload(null); setInsuranceReviewed(false); setInsuranceError(''); }} className="text-xs underline" style={{ color: 'var(--hf-text-muted)' }}>
-                        Remove &amp; upload different document
+                        Remove & upload different document
                       </button>
                     </div>
                   )}
