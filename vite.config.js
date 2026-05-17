@@ -25,4 +25,13 @@ export default defineConfig({
       'recharts',
     ],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+        },
+      },
+    },
+  },
 });
