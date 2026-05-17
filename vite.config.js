@@ -17,18 +17,6 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    sourcemap: false,
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          // recharts removed from manualChunks to fix "l is not a function" production error
-        },
-      },
-    },
-  },
   optimizeDeps: {
     include: [
       'react', 
