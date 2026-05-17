@@ -24,7 +24,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          recharts: ['recharts'],
+          // recharts removed from manualChunks to fix "l is not a function" production error
         },
       },
     },
