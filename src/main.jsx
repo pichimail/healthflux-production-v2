@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
 
+// Initialize i18n (react-i18next) BEFORE any component that uses useTranslation() mounts.
+// This prevents production chunking/timing issues where i18n.changeLanguage or t() could be undefined.
+import '@/components/i18n/i18n.jsx'
+
 class RootErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
