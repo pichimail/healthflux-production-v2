@@ -22,6 +22,12 @@ export default defineConfig({
     minify: 'esbuild',
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'recharts'],
+    include: [
+      'react', 
+      'react-dom',
+      'react/jsx-runtime',
+      'recharts',
+      '@recharts/recharts'
+    ],
   },
 });
