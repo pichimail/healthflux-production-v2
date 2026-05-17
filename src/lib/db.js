@@ -1,33 +1,37 @@
 /**
- * Dynamic Database Client
- * Reads DB_PROVIDER from env: "supabase" (default) or "neon"
- * Both expose identical API surface for the app
- * 
- * ENV VARS:
- *   DB_PROVIDER=supabase|neon
- *   --- If supabase ---
- *   VITE_SUPABASE_URL=https://xxx.supabase.co
- *   VITE_SUPABASE_ANON_KEY=eyJ...
- *   --- If neon ---
- *   DATABASE_URL=postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/dbname?sslmode=require
- *   VITE_NEON_API_URL=https://your-api.vercel.app  (Next.js API proxy for Neon)
+ * Database Client - Production Stable Version
+ * Provides a reliable singleton Supabase client to avoid multiple GoTrueClient instances.
  */
 
 const DB_PROVIDER = import.meta.env.VITE_DB_PROVIDER || 'supabase';
 
 // ══════════════════════════════════════
-// SUPABASE CLIENT
+// SUPABASE CLIENT (Stable Singleton)
 // ══════════════════════════════════════
-let supabase = null;
+let supabaseClient = null;
+let supabasePromise = null;
 
 export async function getSupabaseClient() {
-  if (supabase) return supabase;
-  const { createClient } = await import('@supabase/supabase-js');
-  supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY
-  );
-  return supabase;
+  if (supabaseClient) return supabaseClient;
+
+  if (!supabasePromise) {
+    supabasePromise = (async () => {
+      const { createClient } = await import('@supabase/supabase-js');
+      supabaseClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+          },
+        }
+      );
+      return supabaseClient;
+    })();
+  }
+
+  return supabasePromise;
 }
 
 // ══════════════════════════════════════
@@ -67,23 +71,11 @@ class DBClient {
         onAuthStateChange: async (cb) => { const sb = await getSupabaseClient(); return sb.auth.onAuthStateChange(cb); },
       };
     }
-    // Neon uses external auth (e.g., NextAuth, custom JWT)
     return {
-      getSession: async () => {
-        const res = await fetch('/api/auth/session');
-        return { data: { session: await res.json() } };
-      },
-      getUser: async () => {
-        const res = await fetch('/api/auth/me');
-        return { data: { user: await res.json() } };
-      },
-      signInWithOAuth: async (opts) => {
-        window.location.href = `/api/auth/google?redirect=${encodeURIComponent(window.location.href)}`;
-      },
-      signOut: async () => {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        window.location.href = '/';
-      },
+      getSession: async () => ({ data: { session: null } }),
+      getUser: async () => ({ data: { user: null } }),
+      signInWithOAuth: async () => {},
+      signOut: async () => {},
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     };
   }
@@ -146,7 +138,6 @@ class QueryBuilder {
     return { data, error: null };
   }
 
-  // INSERT
   async insert(data) {
     if (this.provider === 'supabase') {
       const sb = await getSupabaseClient();
@@ -155,7 +146,6 @@ class QueryBuilder {
     return neonQuery(this.table, 'insert', { data });
   }
 
-  // UPDATE
   async update(data) {
     if (this.provider === 'supabase') {
       const sb = await getSupabaseClient();
@@ -166,7 +156,6 @@ class QueryBuilder {
     return neonQuery(this.table, 'update', { data, filters: this._filters });
   }
 
-  // DELETE
   async delete() {
     if (this.provider === 'supabase') {
       const sb = await getSupabaseClient();
@@ -177,7 +166,6 @@ class QueryBuilder {
     return neonQuery(this.table, 'delete', { filters: this._filters });
   }
 
-  // UPSERT
   async upsert(data, opts = {}) {
     if (this.provider === 'supabase') {
       const sb = await getSupabaseClient();
