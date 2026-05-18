@@ -25,13 +25,5 @@ export default defineConfig({
       'recharts',
     ],
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          recharts: ['recharts'],
-        },
-      },
-    },
-  },
+  // Removed manualChunks - this was causing the Recharts production error
 });
