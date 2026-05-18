@@ -19,20 +19,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: [
-      'react', 
+      'react',
       'react-dom',
       'react/jsx-runtime',
-      'recharts',
+      'recharts'
     ],
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          recharts: ['recharts']
-        }
-      }
-    }
-  }
 })
