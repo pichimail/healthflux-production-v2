@@ -162,7 +162,7 @@ export default function Platform() {
             each with deep, purpose-built workflows that share the same unified patient context.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <Link to={createPageUrl("Onboarding")}
+            <Link to={createPageUrl("Auth")}
               className="px-7 py-3 rounded-xl text-sm font-bold flex items-center gap-2"
               style={{ background: "#0f172a", color: "#ffffff" }}>
               Try all features free <ArrowRight size={14} />
@@ -228,7 +228,7 @@ export default function Platform() {
             The free plan includes the core dashboard, vitals, medications, and limited AI access.
             Upgrade to unlock the full platform.
           </p>
-          <Link to={createPageUrl("Onboarding")}
+          <Link to={createPageUrl("Auth")}
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-bold"
             style={{ background: "#d7f576", color: "#0a1200" }}>
             Get started free <ArrowRight size={14} />

@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { getRouteById } from '@/lib/routes';
 import { WidgetCustomizer, loadWidgets, saveWidgets } from '@/components/dashboard/WidgetCustomizer';
 
-// Onboarding gate — redirect users who haven't completed onboarding
+// Onboarding gate — redirect authenticated users who haven't completed onboarding
 function useOnboardingGate() {
   const [checked, setChecked] = React.useState(false);
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
@@ -33,13 +33,22 @@ function useOnboardingGate() {
   React.useEffect(() => {
     (async () => {
       try {
-        const profiles = await base44.entities.Profile.list('-created_date', 1);
+        const { getSupabaseClient } = await import('@/lib/db');
+        const sb = await getSupabaseClient();
+        const { data: { user } } = await sb.auth.getUser();
+        // Not authenticated — no redirect needed, let auth handle it
+        if (!user) { setChecked(true); return; }
+        const { data: profiles } = await sb.from('profiles')
+          .select('id, onboarding_completed')
+          .eq('user_id', user.id)
+          .eq('relationship', 'self')
+          .limit(1);
         const arr = Array.isArray(profiles) ? profiles : [];
         if (arr.length === 0 || !arr[0]?.onboarding_completed) {
           setNeedsOnboarding(true);
         }
       } catch {
-        setNeedsOnboarding(true);
+        // On error, do NOT redirect — fail open so user isn't stuck
       }
       setChecked(true);
     })();
@@ -48,7 +57,7 @@ function useOnboardingGate() {
   return { checked, needsOnboarding };
 }
 
-const NO_LAYOUT_PAGES = ['Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy', 'Cookies'];
+const NO_LAYOUT_PAGES = ['Auth', 'Onboarding', 'AdminLogin', 'Landing', 'MarketingHome', 'Platform', 'Solutions', 'TrustCenter', 'Pricing', 'DevDocs', 'Terms', 'Privacy', 'Cookies'];
 const ADMIN_PAGES = [
   'AdminDashboard', 'AdminUsers', 'AdminRoles', 'AdminPackages',
   'AdminNotifications', 'AdminFeatureFlags', 'AdminAnalytics',

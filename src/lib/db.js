@@ -17,9 +17,11 @@ export async function getSupabaseClient() {
   if (!supabasePromise) {
     supabasePromise = (async () => {
       const { createClient } = await import('@supabase/supabase-js');
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseKey) throw new Error('No Supabase key found. Set VITE_SUPABASE_ANON_KEY in your .env file.');
       supabaseClient = createClient(
         import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        supabaseKey,
         {
           auth: {
             persistSession: true,
@@ -67,6 +69,8 @@ class DBClient {
         getSession: async () => { const sb = await getSupabaseClient(); return sb.auth.getSession(); },
         getUser: async () => { const sb = await getSupabaseClient(); return sb.auth.getUser(); },
         signInWithOAuth: async (opts) => { const sb = await getSupabaseClient(); return sb.auth.signInWithOAuth(opts); },
+        signInWithOtp: async (opts) => { const sb = await getSupabaseClient(); return sb.auth.signInWithOtp(opts); },
+        verifyOtp: async (opts) => { const sb = await getSupabaseClient(); return sb.auth.verifyOtp(opts); },
         signOut: async () => { const sb = await getSupabaseClient(); return sb.auth.signOut(); },
         onAuthStateChange: async (cb) => { const sb = await getSupabaseClient(); return sb.auth.onAuthStateChange(cb); },
       };

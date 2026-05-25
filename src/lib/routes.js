@@ -33,6 +33,7 @@ export const routeRegistry = [
   route("DevDocs", "/dev-docs", { requiresAuth: false, legacyPaths: ["/DevDocs"] }),
   route("Terms", "/terms", { requiresAuth: false, legacyPaths: ["/Terms"] }),
   route("Privacy", "/privacy", { requiresAuth: false, legacyPaths: ["/Privacy"] }),
+  route("Auth", "/auth", { requiresAuth: false, legacyPaths: ["/Auth"] }),
   route("Onboarding", "/onboarding"),
   route("Dashboard", "/dashboard", { tabGroup: "root", legacyPaths: ["/Dashboard"] }),
   route("HealthHub", "/health", { tabGroup: "root", legacyPaths: ["/HealthHub"] }),

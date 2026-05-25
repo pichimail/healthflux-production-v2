@@ -132,7 +132,7 @@ function HeroSection({ isAuthenticated }) {
                 Go to Dashboard <ArrowRight size={16} />
               </Link>
             ) : (
-              <Link to={createPageUrl("Onboarding")}
+              <Link to={createPageUrl("Auth")}
                 className="px-8 py-4 rounded-2xl text-base font-bold flex items-center gap-2 transition-all hover:opacity-90 active:scale-95"
                 style={{ background: "#0f172a", color: "#ffffff" }}>
                 Start for free <ArrowRight size={16} />
@@ -314,7 +314,7 @@ function PricingSection() {
                   </ul>
                 </div>
                 <div className="mt-auto">
-                  <Link to={createPageUrl("Onboarding")}
+                  <Link to={createPageUrl("Auth")}
                     className="block w-full text-center py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
                     style={{
                       background: plan.featured ? a.bg : "#0f172a",
@@ -363,7 +363,7 @@ function CTASection({ isAuthenticated }) {
               Go to Dashboard <ArrowRight size={16} />
             </Link>
           ) : (
-            <Link to={createPageUrl("Onboarding")}
+            <Link to={createPageUrl("Auth")}
               className="px-8 py-4 rounded-2xl text-base font-bold flex items-center gap-2 transition-all hover:opacity-90"
               style={{ background: "#d7f576", color: "#0a1200" }}>
               Start for free <ArrowRight size={16} />

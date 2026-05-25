@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -22,7 +22,14 @@ function LayoutWrapper({ children, pageId }) {
 }
 
 function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin }) {
-  const { isAuthenticated, isLoadingAuth, user, navigateToLogin, authError } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoadingAuth, user, authError } = useAuth();
+
+  useEffect(() => {
+    if (!isLoadingAuth && requiresAuth && !isAuthenticated) {
+      navigate('/auth', { replace: true, state: { returnTo: window.location.pathname } });
+    }
+  }, [isLoadingAuth, requiresAuth, isAuthenticated, navigate]);
 
   if (isLoadingAuth) {
     return (
@@ -37,7 +44,6 @@ function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin }) {
   }
 
   if (requiresAuth && !isAuthenticated) {
-    navigateToLogin();
     return null;
   }
 

@@ -258,7 +258,7 @@ Content-Type: application/json
             Create an account to access the full platform — including the AI features, data models, and developer tooling.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to={createPageUrl("Onboarding")}
+            <Link to={createPageUrl("Auth")}
               className="px-8 py-4 rounded-xl text-sm font-bold flex items-center gap-2"
               style={{ background: "#d7f576", color: "#0a1200" }}>
               Get started free <ArrowRight size={14} />

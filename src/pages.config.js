@@ -74,6 +74,7 @@ import AdminRoles from './pages/AdminRoles';
 import AdminSubscriptions from './pages/AdminSubscriptions';
 import AdminUsers from './pages/AdminUsers';
 import AdminVitals from './pages/AdminVitals';
+import Auth from './pages/Auth';
 import CareCircle from './pages/CareCircle';
 import CareHub from './pages/CareHub';
 import Dashboard from './pages/Dashboard';
@@ -142,6 +143,7 @@ export const PAGES = {
     "AdminSubscriptions": AdminSubscriptions,
     "AdminUsers": AdminUsers,
     "AdminVitals": AdminVitals,
+    "Auth": Auth,
     "CareCircle": CareCircle,
     "CareHub": CareHub,
     "Dashboard": Dashboard,

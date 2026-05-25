@@ -79,12 +79,12 @@ export default function MarketingShell({ children, currentPage }) {
 
           {/* CTA buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to={createPageUrl("Dashboard")}
+            <Link to={createPageUrl("Auth")}
               className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-75"
               style={{ color: "#475569" }}>
               Sign in
             </Link>
-            <Link to={createPageUrl("Onboarding")}
+            <Link to={createPageUrl("Auth")}
               className="px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95"
               style={{ background: "#0f172a", color: "#ffffff" }}>
               Get started <ArrowRight size={13} />
@@ -116,12 +116,12 @@ export default function MarketingShell({ children, currentPage }) {
               </Link>
             ))}
             <div className="pt-3 border-t space-y-2" style={{ borderColor: "rgba(15,23,42,0.09)" }}>
-              <Link to={createPageUrl("Dashboard")} onClick={() => setMobileOpen(false)}
+              <Link to={createPageUrl("Auth")} onClick={() => setMobileOpen(false)}
                 className="block w-full text-center px-5 py-2.5 rounded-xl text-sm font-semibold border"
                 style={{ color: "#475569", borderColor: "rgba(15,23,42,0.14)" }}>
                 Sign in
               </Link>
-              <Link to={createPageUrl("Onboarding")} onClick={() => setMobileOpen(false)}
+              <Link to={createPageUrl("Auth")} onClick={() => setMobileOpen(false)}
                 className="block w-full text-center px-5 py-3 rounded-xl text-sm font-bold"
                 style={{ background: "#0f172a", color: "#ffffff" }}>
                 Get started free
@@ -149,7 +149,7 @@ export default function MarketingShell({ children, currentPage }) {
                 Your personal AI health operating system — vitals, medications, labs, documents, 
                 nutrition, wellness, family care, and telehealth in one seamless experience.
               </p>
-              <Link to={createPageUrl("Onboarding")}
+              <Link to={createPageUrl("Auth")}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
                 style={{ background: "#d7f576", color: "#0a1200" }}>
                 Start for free <ArrowRight size={14} />

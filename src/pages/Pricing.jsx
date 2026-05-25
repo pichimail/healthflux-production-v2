@@ -202,7 +202,7 @@ export default function Pricing() {
                     ))}
                   </div>
 
-                  <Link to={createPageUrl("Onboarding")}
+                  <Link to={createPageUrl("Auth")}
                     className="block w-full text-center py-3.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
                     style={{
                       background: plan.featured ? a.bg : "#0f172a",
@@ -279,7 +279,7 @@ export default function Pricing() {
             No credit card required for the free plan. Upgrade in seconds when you're ready for more.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to={createPageUrl("Onboarding")}
+            <Link to={createPageUrl("Auth")}
               className="px-8 py-4 rounded-xl text-sm font-bold flex items-center gap-2"
               style={{ background: "#d7f576", color: "#0a1200" }}>
               Start for free <ArrowRight size={14} />
