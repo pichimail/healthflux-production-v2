@@ -26,6 +26,7 @@
     "predeploy:check": "bash scripts/predeploy-check.sh"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^6.0.0",
     "@capacitor/browser": "^6.0.0",
     "@capacitor/camera": "^6.0.0",
