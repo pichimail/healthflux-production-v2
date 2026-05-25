@@ -4,8 +4,8 @@
 -- ================================================
 
 -- Add missing indexes
-CREATE INDEX IF NOT EXISTS idx_document_acl_doc ON document_acl(document_id);
-CREATE INDEX IF NOT EXISTS idx_abha_user ON abha_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_document_acl_doc ON public.document_acl(document_id);
+CREATE INDEX IF NOT EXISTS idx_abha_user ON public.abha_accounts(user_id);
 
 -- Backfill free tier credits (just in case)
 UPDATE profiles 
