@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { getSupabaseClient } from '@/lib/db';
 
 const ActiveProfileContext = createContext(null);
 
@@ -30,23 +30,31 @@ export function ActiveProfileProvider({ children }) {
 
   const initProfiles = async () => {
     try {
-      const userData = await withTimeout(base44.auth.me(), 10000);
-      setUser(userData);
+      const sb = await withTimeout(getSupabaseClient(), 10000);
+      const { data: { user: authUser } } = await withTimeout(sb.auth.getUser(), 10000);
+      if (!authUser) { setLoading(false); return; }
+      setUser({ id: authUser.id, email: authUser.email, full_name: authUser.user_metadata?.full_name || authUser.email });
 
-      let raw = await withTimeout(base44.entities.Profile.list('-created_date'), 10000);
+      const { data: raw, error } = await withTimeout(
+        sb.from('profiles').select('*').order('created_date', { ascending: false }),
+        10000
+      );
+      if (error) throw error;
       let profiles = Array.isArray(raw) ? raw : [];
 
       // New user with no profiles — auto-create a default "self" profile
       if (profiles.length === 0) {
         try {
-          const newProfile = await withTimeout(
-            base44.entities.Profile.create({
-              full_name: userData.full_name || 'My Profile',
+          const { data: newProfile, error: createErr } = await withTimeout(
+            sb.from('profiles').insert({
+              full_name: authUser.user_metadata?.full_name || authUser.email,
               relationship: 'self',
-            }),
+              created_by: authUser.email,
+            }).select().single(),
             8000
           );
-          profiles = Array.isArray(newProfile) ? newProfile : [newProfile];
+          if (createErr) throw createErr;
+          profiles = newProfile ? [newProfile] : [];
         } catch (createErr) {
           console.error('Failed to create default profile:', createErr);
         }
@@ -88,7 +96,12 @@ export function ActiveProfileProvider({ children }) {
   const refreshProfiles = async () => {
     if (!user) return;
     try {
-      const raw = await withTimeout(base44.entities.Profile.list('-created_date'), 10000);
+      const sb = await getSupabaseClient();
+      const { data: raw, error } = await withTimeout(
+        sb.from('profiles').select('*').order('created_date', { ascending: false }),
+        10000
+      );
+      if (error) throw error;
       const profiles = Array.isArray(raw) ? raw : [];
       setAllProfiles(profiles);
       const current = profiles.find(p => p.id === activeProfileId);

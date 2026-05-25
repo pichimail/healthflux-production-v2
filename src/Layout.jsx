@@ -38,9 +38,9 @@ function useOnboardingGate() {
         const { data: { user } } = await sb.auth.getUser();
         // Not authenticated — no redirect needed, let auth handle it
         if (!user) { setChecked(true); return; }
+        // RLS automatically filters to the authenticated user's own records via created_by = auth_email()
         const { data: profiles } = await sb.from('profiles')
           .select('id, onboarding_completed')
-          .eq('user_id', user.id)
           .eq('relationship', 'self')
           .limit(1);
         const arr = Array.isArray(profiles) ? profiles : [];

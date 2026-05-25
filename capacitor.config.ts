@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.synclo.app',
+  appId: 'com.healthflux.app',
   appName: 'healthflux',
   webDir: 'dist'
 };
