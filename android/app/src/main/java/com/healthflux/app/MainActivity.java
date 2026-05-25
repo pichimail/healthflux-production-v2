@@ -1,4 +1,4 @@
-package com.synclo.app;
+package com.healthflux.app;
 
 import com.getcapacitor.BridgeActivity;
 

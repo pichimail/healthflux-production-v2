@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">healthflux</string>
     <string name="title_activity_main">healthflux</string>
-    <string name="package_name">com.synclo.app</string>
-    <string name="custom_url_scheme">com.synclo.app</string>
+    <string name="package_name">com.healthflux.app</string>
+    <string name="custom_url_scheme">com.healthflux.app</string>
 </resources>
