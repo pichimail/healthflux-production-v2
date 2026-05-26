@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import {
   AlertTriangle, CheckCircle, Loader2, FileText, AlertCircle,
   TrendingUp, Shield, Copy, Download } from
@@ -168,14 +168,7 @@ export default function MedicationReconciliation({ profileId, medications }) {
         </CardContent>
       </Card>
 
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Medication Reconciliation Report
-            </DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={showDetails} onOpenChange={setShowDetails} title="Medication Reconciliation Report" size="xl" showClose>
 
           {reconciliationData &&
           <div className="space-y-4 mt-4">
@@ -351,8 +344,7 @@ export default function MedicationReconciliation({ profileId, medications }) {
               </div>
             </div>
           }
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </>);
 
 }

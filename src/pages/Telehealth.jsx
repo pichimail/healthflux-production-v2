@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActiveProfile } from '../components/ActiveProfileContext';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -124,13 +124,7 @@ function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents
   const slots = doctor.available_slots?.filter(s => !s.is_booked) || [];
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); setBooked(false); setSelectedSlot(null); setReason(''); setSelectedDocIds([]); } }}>
-      <DialogContent className="rounded-3xl max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-5">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--hf-text)' }}>
-            <Video size={15} style={{ color: 'var(--hf-lemon-strong)' }} /> Book with {doctor.name}
-          </DialogTitle>
-        </DialogHeader>
+    <AdaptiveOverlay open={open} onOpenChange={o => { if (!o) { onClose(); setBooked(false); setSelectedSlot(null); setReason(''); setSelectedDocIds([]); } }} title={`Book with ${doctor.name}`} size="lg" showClose>
 
         {booked ? (
           <div className="flex flex-col items-center py-10 gap-4 text-center">
@@ -211,8 +205,7 @@ function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </AdaptiveOverlay>
   );
 }
 
@@ -243,9 +236,7 @@ function AddDoctorDialog({ open, onClose }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-md rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="text-sm font-bold">Add Doctor</DialogTitle></DialogHeader>
+    <AdaptiveOverlay open={open} onOpenChange={onClose} title="Add Doctor" size="lg" showClose>
         <div className="space-y-3 mt-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5 col-span-2">
@@ -304,8 +295,7 @@ function AddDoctorDialog({ open, onClose }) {
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveOverlay>
   );
 }
 

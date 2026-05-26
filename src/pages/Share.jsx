@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Badge } from '@/components/ui/badge';
 import { Share2, Plus, Copy, ExternalLink, Trash2, CheckCircle } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -283,11 +283,7 @@ export default function Share() {
       )}
 
       {/* Create Share Link Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create Share Link</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={setDialogOpen} title="Create Share Link" size="lg" showClose>
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="profile_id">Profile to Share *</Label>
@@ -412,8 +408,7 @@ export default function Share() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </div>
   );
 }

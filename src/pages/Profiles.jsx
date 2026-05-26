@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Drawer } from 'vaul';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +34,6 @@ export default function Profiles() {
   const [editing, setEditing] = useState(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(BLANK);
-  const [isMobile] = useState(() => window.innerWidth < 768);
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
 
@@ -236,24 +234,15 @@ export default function Profiles() {
         </div>
       )}
 
-      {isMobile ? (
-        <Drawer.Root open={open} onOpenChange={v => !v && close_()}>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50" />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl max-h-[95dvh] overflow-y-auto" style={{ background: 'var(--hf-surface)' }}>
-              <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} /></div>
-              <div className="px-5 pb-10"><h2 className="text-base font-bold mb-1" style={{ color: 'var(--hf-text)' }}>{editing ? 'Edit Profile' : 'Add Family Member'}</h2>{FormContent}</div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
-      ) : (
-        <Dialog open={open} onOpenChange={v => !v && close_()}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl" style={{ background: 'var(--hf-surface)', color: 'var(--hf-text)' }}>
-            <DialogHeader><DialogTitle>{editing ? 'Edit Profile' : 'Add Family Member'}</DialogTitle></DialogHeader>
-            {FormContent}
-          </DialogContent>
-        </Dialog>
-      )}
+      <AdaptiveOverlay
+        open={open}
+        onOpenChange={v => !v && close_()}
+        title={editing ? 'Edit Profile' : 'Add Family Member'}
+        size="lg"
+        showClose
+      >
+        {FormContent}
+      </AdaptiveOverlay>
     </div>
   );
 }

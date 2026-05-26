@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, Package } from 'lucide-react';
@@ -99,11 +99,7 @@ export default function RefillManager({ medication, profileId }) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Set Refill Reminder</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={setDialogOpen} title="Set Refill Reminder" size="sm" showClose>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Pharmacy Name</Label>
@@ -146,8 +142,7 @@ export default function RefillManager({ medication, profileId }) {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </>
   );
 }

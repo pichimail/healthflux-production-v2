@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { toast } from 'sonner';
 import { Plus, Edit2, Trash2, Megaphone, Eye, MousePointer, SkipForward, TrendingUp, Image, Video, Maximize2, Loader2, ExternalLink } from 'lucide-react';
 
@@ -288,29 +288,17 @@ export default function AdminAds() {
       </div>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg rounded-[24px] p-6"
-          style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: 'var(--hf-text)' }}>Create Ad</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={createOpen} onOpenChange={setCreateOpen} title="Create Ad" size="md" showClose>
           <AdForm onSave={data => createMutation.mutate(data)} onClose={() => setCreateOpen(false)} saving={createMutation.isPending} />
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editAd} onOpenChange={v => { if (!v) setEditAd(null); }}>
-        <DialogContent className="max-w-lg rounded-[24px] p-6"
-          style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: 'var(--hf-text)' }}>Edit Ad</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={!!editAd} onOpenChange={v => { if (!v) setEditAd(null); }} title="Edit Ad" size="md" showClose>
           {editAd && (
             <AdForm initial={editAd} onSave={data => updateMutation.mutate({ id: editAd.id, data })}
               onClose={() => setEditAd(null)} saving={updateMutation.isPending} />
           )}
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
 
       {/* Delete confirm */}
       {deleteId && (

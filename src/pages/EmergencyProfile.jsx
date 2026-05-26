@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import {
   AlertTriangle, Download, Share2, Phone, Pill, Activity,
   Copy, Check, Heart, Shield, User
@@ -291,9 +291,7 @@ export default function EmergencyProfile() {
       </div>
 
       {/* Share Dialog */}
-      <Dialog open={shareDialog} onOpenChange={(o) => { setShareDialog(o); if (!o) setShareLink(null); }}>
-        <DialogContent className="w-[90vw] max-w-sm rounded-3xl p-5">
-          <DialogHeader><DialogTitle className="text-sm font-bold">Share Emergency Profile</DialogTitle></DialogHeader>
+      <AdaptiveOverlay open={shareDialog} onOpenChange={o => { setShareDialog(o); if (!o) setShareLink(null); }} title="Share Emergency Profile" size="sm" showClose>
           {!shareLink ? (
             <div className="space-y-3 mt-3">
               <div className="space-y-1.5">
@@ -327,8 +325,7 @@ export default function EmergencyProfile() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </div>
   );
 }

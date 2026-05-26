@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Shield, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -129,9 +129,7 @@ export default function AdminRoles() {
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={close}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-[22px]" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader><DialogTitle style={{ color: 'var(--hf-text)' }}>{editing ? 'Edit Role' : 'Create Role'}</DialogTitle></DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={close} title={editing ? 'Edit Role' : 'Create Role'} size="md" showClose>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label style={{ color: 'var(--hf-text)' }}>Name *</Label>
@@ -161,8 +159,7 @@ export default function AdminRoles() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

@@ -9,7 +9,7 @@ import {
   Brain, TestTube,
   Leaf, BarChart3, AlertTriangle } from
 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { format } from 'date-fns';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -23,9 +23,7 @@ import AddMedicationForm from '../components/forms/AddMedicationForm';
 import AddLabResultForm from '../components/forms/AddLabResultForm';
 import Haptics from '../components/utils/haptics';
 import PullToRefresh from '../components/PullToRefresh';
-import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBottomSheet } from '../lib/BottomSheetContext';
 import { loadWidgets } from '../components/dashboard/WidgetCustomizer';
 import DailyCalorieChart from '../components/nutrition/DailyCalorieChart';
 import { useFABDispatch } from '../lib/FABContext';
@@ -545,22 +543,17 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { activeProfileId, setActiveProfileId, activeProfile, allProfiles, user, loading: profileLoading } = useActiveProfile();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem(DASHBOARD_TAB_KEY) || 'overview');
-  const [vitalDialogOpen, setVitalDialogOpen] = useState(false);
+  const [vitalOpen, setVitalOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [medDialogOpen, setMedDialogOpen] = useState(false);
-  const [labDialogOpen, setLabDialogOpen] = useState(false);
+  const [medOpen, setMedOpen] = useState(false);
+  const [labOpen, setLabOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
-  const [mobileVitalOpen, setMobileVitalOpen] = useState(false);
-  const [mobileMedOpen, setMobileMedOpen] = useState(false);
-  const [mobileLabOpen, setMobileLabOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [scanFile, setScanFile] = useState(null);
   const [multiSnapOpen, setMultiSnapOpen] = useState(false);
   const [docScannerOpen, setDocScannerOpen] = useState(false);
   const [chatPrefill, setChatPrefill] = useState('');
   const [widgets, setWidgets] = useState(() => loadWidgets());
-  const { openSheet, closeSheet } = useBottomSheet();
   const queryClient = useQueryClient();
   const { registerHandler: registerFABHandler } = useFABDispatch();
 
@@ -576,17 +569,10 @@ export default function Dashboard() {
     if (key === 'upload') { setUploadDialogOpen(true); }
     if (key === 'scan') { setDocScannerOpen(true); }
     if (key === 'multisnap') { setMultiSnapOpen(true); }
-    if (key === 'vital') { isMobile ? setMobileVitalOpen(true) : setVitalDialogOpen(true); }
-    if (key === 'med') {
-      if (isMobile) { setMobileMedOpen(true); openSheet(); } else setMedDialogOpen(true);
-    }
-    if (key === 'lab') {
-      if (isMobile) { setMobileLabOpen(true); openSheet(); } else setLabDialogOpen(true);
-    }
-    if (key === 'chat') {
-      setChatPrefill(extra?.prefill || '');
-      if (isMobile) { setMobileChatOpen(true); openSheet(); } else setChatOpen(true);
-    }
+    if (key === 'vital') { setVitalOpen(true); }
+    if (key === 'med') { setMedOpen(true); }
+    if (key === 'lab') { setLabOpen(true); }
+    if (key === 'chat') { setChatPrefill(extra?.prefill || ''); setChatOpen(true); }
   };
   useEffect(() => registerFABHandler((k, e) => fabHandlerRef.current(k, e)), [registerFABHandler]);
 
@@ -679,9 +665,7 @@ export default function Dashboard() {
     ]);
   };
 
-  const handleLogVital = () => isMobile ? setMobileVitalOpen(true) : setVitalDialogOpen(true);
-  const handleOpenSheet = (setter) => { setter(true); openSheet(); };
-  const handleCloseSheet = (setter) => { setter(false); closeSheet(); };
+  const handleLogVital = () => setVitalOpen(true);
 
   if (profileLoading) {
     return (
@@ -759,7 +743,7 @@ export default function Dashboard() {
                 bpData={bpData} hrData={hrData} docTypes={docTypes} profileId={activeProfileId}
                 widgets={widgets} mealLogs={mealLogs} nutritionGoal={nutritionGoal}
                 onLogVital={handleLogVital}
-                onChat={() => isMobile ? handleOpenSheet(setMobileChatOpen) : setChatOpen(true)}
+                onChat={() => setChatOpen(true)}
               />
             }
             {activeTab === 'vitals' && <VitalsTab vitals={vitals} onLogVital={handleLogVital} />}
@@ -812,202 +796,55 @@ export default function Dashboard() {
           onSuccess={() => { setScanFile(null); queryClient.invalidateQueries({ queryKey: ['documents', activeProfileId] }); }}
           isMobile={isMobile} initialFile={scanFile} />
 
-        {/* ══ VITALS — mobile bottom sheet ══ */}
-        <Drawer.Root open={mobileVitalOpen} onOpenChange={(v) => v ? setMobileVitalOpen(true) : handleCloseSheet(setMobileVitalOpen)} shouldScaleBackground>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[80]" style={{ backdropFilter: 'blur(4px)' }} />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-[28px] overflow-hidden flex flex-col"
-              style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '92dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} />
-              </div>
-              <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#c9bbff' }}>
-                    <Activity size={15} style={{ color: '#1a0a40' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>💓 Log Vital Sign</h2>
-                    <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>Track your health metrics</p>
-                  </div>
-                </div>
-                <button onClick={() => handleCloseSheet(setMobileVitalOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--hf-surface-2)' }} aria-label="Close">
-                  <X size={14} style={{ color: 'var(--hf-text-muted)' }} />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 px-5 py-4 pb-10">
-                <VitalEntryForm profileId={activeProfileId}
-                  onSuccess={() => { handleCloseSheet(setMobileVitalOpen); queryClient.invalidateQueries({ queryKey: ['vitals', activeProfileId] }); }}
-                  onCancel={() => handleCloseSheet(setMobileVitalOpen)} />
-              </div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
+        {/* ══ VITALS ══ */}
+        <AdaptiveOverlay
+          open={vitalOpen}
+          onOpenChange={v => { if (!v) setVitalOpen(false); }}
+          title="💓 Log Vital Sign"
+          size="md"
+          showClose
+        >
+          <VitalEntryForm profileId={activeProfileId}
+            onSuccess={() => { setVitalOpen(false); queryClient.invalidateQueries({ queryKey: ['vitals', activeProfileId] }); }}
+            onCancel={() => setVitalOpen(false)} />
+        </AdaptiveOverlay>
 
-        {/* ══ VITALS — desktop dialog ══ */}
-        <Dialog open={vitalDialogOpen} onOpenChange={setVitalDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-md rounded-[28px] p-0 overflow-hidden" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-            <DialogHeader className="p-5 pb-4 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-              <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--hf-text)' }}>
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#c9bbff' }}>
-                  <Activity size={15} style={{ color: '#1a0a40' }} />
-                </div>
-                💓 Log Vital Sign
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-5">
-              <VitalEntryForm profileId={activeProfileId}
-                onSuccess={() => { setVitalDialogOpen(false); queryClient.invalidateQueries({ queryKey: ['vitals', activeProfileId] }); }}
-                onCancel={() => setVitalDialogOpen(false)} />
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* ══ MEDICATION ══ */}
+        <AdaptiveOverlay
+          open={medOpen}
+          onOpenChange={v => { if (!v) setMedOpen(false); }}
+          title="💊 Add Medication"
+          size="md"
+          showClose
+        >
+          <AddMedicationForm profileId={activeProfileId}
+            onSuccess={() => { setMedOpen(false); queryClient.invalidateQueries({ queryKey: ['medications', activeProfileId] }); }}
+            onCancel={() => setMedOpen(false)} />
+        </AdaptiveOverlay>
 
-        {/* ══ MEDICATION — mobile bottom sheet ══ */}
-        <Drawer.Root open={mobileMedOpen} onOpenChange={(v) => v ? setMobileMedOpen(true) : handleCloseSheet(setMobileMedOpen)} shouldScaleBackground>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[80]" style={{ backdropFilter: 'blur(4px)' }} />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-[28px] overflow-hidden flex flex-col"
-              style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '92dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} />
-              </div>
-              <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#f7c9a3' }}>
-                    <Pill size={15} style={{ color: '#3d1a00' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>💊 Add Medication</h2>
-                    <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>Track a new medicine</p>
-                  </div>
-                </div>
-                <button onClick={() => handleCloseSheet(setMobileMedOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--hf-surface-2)' }} aria-label="Close">
-                  <X size={14} style={{ color: 'var(--hf-text-muted)' }} />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 px-5 py-4 pb-10">
-                <AddMedicationForm profileId={activeProfileId}
-                  onSuccess={() => { handleCloseSheet(setMobileMedOpen); queryClient.invalidateQueries({ queryKey: ['medications', activeProfileId] }); }}
-                  onCancel={() => handleCloseSheet(setMobileMedOpen)} />
-              </div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
+        {/* ══ LAB RESULT ══ */}
+        <AdaptiveOverlay
+          open={labOpen}
+          onOpenChange={v => { if (!v) setLabOpen(false); }}
+          title="🧪 Add Lab Result"
+          size="md"
+          showClose
+        >
+          <AddLabResultForm profileId={activeProfileId}
+            onSuccess={() => { setLabOpen(false); queryClient.invalidateQueries({ queryKey: ['labResults', activeProfileId] }); }}
+            onCancel={() => setLabOpen(false)} />
+        </AdaptiveOverlay>
 
-        {/* ══ MEDICATION — desktop dialog ══ */}
-        <Dialog open={medDialogOpen} onOpenChange={setMedDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-lg rounded-[28px] p-0 overflow-hidden" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-            <DialogHeader className="p-5 pb-4 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-              <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--hf-text)' }}>
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#f7c9a3' }}>
-                  <Pill size={15} style={{ color: '#3d1a00' }} />
-                </div>
-                💊 Add Medication
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-5 overflow-y-auto max-h-[80vh]">
-              <AddMedicationForm profileId={activeProfileId}
-                onSuccess={() => { setMedDialogOpen(false); queryClient.invalidateQueries({ queryKey: ['medications', activeProfileId] }); }}
-                onCancel={() => setMedDialogOpen(false)} />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* ══ LAB RESULT — mobile bottom sheet ══ */}
-        <Drawer.Root open={mobileLabOpen} onOpenChange={(v) => v ? setMobileLabOpen(true) : handleCloseSheet(setMobileLabOpen)} shouldScaleBackground>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[80]" style={{ backdropFilter: 'blur(4px)' }} />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-[28px] overflow-hidden flex flex-col"
-              style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '92dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} />
-              </div>
-              <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#a8e6cf' }}>
-                    <TestTube size={15} style={{ color: '#003d20' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>🧪 Add Lab Result</h2>
-                    <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>Blood test, urine, lipids…</p>
-                  </div>
-                </div>
-                <button onClick={() => handleCloseSheet(setMobileLabOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--hf-surface-2)' }} aria-label="Close">
-                  <X size={14} style={{ color: 'var(--hf-text-muted)' }} />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 px-5 py-4 pb-10">
-                <AddLabResultForm profileId={activeProfileId}
-                  onSuccess={() => { handleCloseSheet(setMobileLabOpen); queryClient.invalidateQueries({ queryKey: ['labResults', activeProfileId] }); }}
-                  onCancel={() => handleCloseSheet(setMobileLabOpen)} />
-              </div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
-
-        {/* ══ LAB RESULT — desktop dialog ══ */}
-        <Dialog open={labDialogOpen} onOpenChange={setLabDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-lg rounded-[28px] p-0 overflow-hidden" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-            <DialogHeader className="p-5 pb-4 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-              <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--hf-text)' }}>
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#a8e6cf' }}>
-                  <TestTube size={15} style={{ color: '#003d20' }} />
-                </div>
-                🧪 Add Lab Result
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-5 overflow-y-auto max-h-[80vh]">
-              <AddLabResultForm profileId={activeProfileId}
-                onSuccess={() => { setLabDialogOpen(false); queryClient.invalidateQueries({ queryKey: ['labResults', activeProfileId] }); }}
-                onCancel={() => setLabDialogOpen(false)} />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* ══ FLUX CHAT — mobile bottom sheet ══ */}
-        <Drawer.Root open={mobileChatOpen} onOpenChange={(v) => v ? setMobileChatOpen(true) : handleCloseSheet(setMobileChatOpen)} shouldScaleBackground>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[80]" style={{ backdropFilter: 'blur(4px)' }} />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-[28px] flex flex-col"
-              style={{ backgroundColor: 'var(--hf-surface)', height: '90dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} />
-              </div>
-              <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b" style={{ borderColor: 'var(--hf-border)' }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#9bb4ff' }}>
-                    <Brain size={15} style={{ color: '#0a1240' }} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>🤖 Flux Health Chat</h2>
-                    <p className="text-[10px]" style={{ color: 'var(--hf-text-muted)' }}>Ask about your health data</p>
-                  </div>
-                </div>
-                <button onClick={() => handleCloseSheet(setMobileChatOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--hf-surface-2)' }} aria-label="Close">
-                  <X size={14} style={{ color: 'var(--hf-text-muted)' }} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-hidden"><AIHealthChat profileId={activeProfileId} initialMessage={chatPrefill} /></div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
-
-        {/* ══ FLUX CHAT — desktop dialog ══ */}
-        <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-          <DialogContent className="w-[95vw] max-w-3xl h-[85vh] sm:h-[700px] flex flex-col p-0 overflow-hidden rounded-[28px]"
-            style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-            <DialogHeader className="p-5 pb-4 border-b flex-shrink-0" style={{ borderColor: 'var(--hf-border)' }}>
-              <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--hf-text)' }}>
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: '#9bb4ff' }}>
-                  <Brain size={15} style={{ color: '#0a1240' }} />
-                </div>
-                🤖 Flux Health Assistant
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-hidden"><AIHealthChat profileId={activeProfileId} initialMessage={chatPrefill} /></div>
-          </DialogContent>
-        </Dialog>
+        {/* ══ FLUX CHAT ══ */}
+        <AdaptiveOverlay
+          open={chatOpen}
+          onOpenChange={v => { if (!v) setChatOpen(false); }}
+          title="🤖 Flux Health Chat"
+          size="xl"
+          showClose
+        >
+          <AIHealthChat profileId={activeProfileId} initialMessage={chatPrefill} />
+        </AdaptiveOverlay>
 
       </div>
     </PullToRefresh>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Progress } from '@/components/ui/progress';
 import {
   Brain, Sparkles, CheckCircle, Loader2,
@@ -441,9 +441,7 @@ Be specific, warm, and motivating. Reference actual data.`,
           )}
 
           {/* Log dialog */}
-          <Dialog open={!!logDialog} onOpenChange={(o) => !o && setLogDialog(null)}>
-            <DialogContent className="w-[90vw] max-w-sm rounded-3xl p-5">
-              <DialogHeader><DialogTitle className="text-sm font-bold">Log Progress: {logDialog?.title}</DialogTitle></DialogHeader>
+          <AdaptiveOverlay open={!!logDialog} onOpenChange={o => !o && setLogDialog(null)} title={`Log Progress: ${logDialog?.title || ''}`} size="sm" showClose>
               <div className="space-y-3 mt-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold">Value ({logDialog?.unit})</Label>
@@ -458,13 +456,10 @@ Be specific, warm, and motivating. Reference actual data.`,
                   {logGoal.isPending ? 'Saving…' : 'Save Progress'}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveOverlay>
 
           {/* Add goal dialog */}
-          <Dialog open={goalDialog} onOpenChange={setGoalDialog}>
-            <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5">
-              <DialogHeader><DialogTitle className="text-sm font-bold">New Health Goal</DialogTitle></DialogHeader>
+          <AdaptiveOverlay open={goalDialog} onOpenChange={setGoalDialog} title="New Health Goal" size="md" showClose>
               <div className="space-y-3 mt-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold">Category</Label>
@@ -526,8 +521,7 @@ Be specific, warm, and motivating. Reference actual data.`,
                   </Button>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+          </AdaptiveOverlay>
         </div>
       )}
 

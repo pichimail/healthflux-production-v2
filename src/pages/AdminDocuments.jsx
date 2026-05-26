@@ -6,7 +6,7 @@ import { FileText, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Drawer } from 'vaul';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 
 export default function AdminDocuments() {
   const [search, setSearch] = useState('');
@@ -123,47 +123,39 @@ export default function AdminDocuments() {
         </div>
       </div>
 
-      {/* Document Detail Drawer */}
-      <Drawer.Root open={!!selectedDoc} onOpenChange={v => { if (!v) setSelectedDoc(null); }}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl"
-            style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '80dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} /></div>
-            {selectedDoc && (
-              <div className="overflow-y-auto px-5 pb-10 pt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold" style={{ color: 'var(--hf-text)' }}>{selectedDoc.title}</h2>
-                  <button onClick={() => setSelectedDoc(null)}><X size={18} style={{ color: 'var(--hf-text-muted)' }} /></button>
-                </div>
-                <div className="space-y-3 text-sm">
-                  {[
-                    ['Type', selectedDoc.document_type?.replace(/_/g,' ')],
-                    ['Owner', selectedDoc.created_by],
-                    ['Status', selectedDoc.status],
-                    ['Facility', selectedDoc.facility_name],
-                    ['Doctor', selectedDoc.doctor_name],
-                    ['Date', selectedDoc.document_date],
-                    ['Created', selectedDoc.created_date ? format(new Date(selectedDoc.created_date), 'PPP') : '—'],
-                    ['Health Score', selectedDoc.health_score],
-                  ].map(([label, val]) => val ? (
-                    <div key={label} className="flex justify-between">
-                      <span style={{ color: 'var(--hf-text-muted)' }}>{label}</span>
-                      <span className="font-semibold capitalize" style={{ color: 'var(--hf-text)' }}>{val}</span>
-                    </div>
-                  ) : null)}
-                  {selectedDoc.ai_summary && (
-                    <div className="mt-4 p-3 rounded-2xl" style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
-                      <p className="text-xs font-bold mb-1" style={{ color: 'var(--hf-text-muted)' }}>AI Summary</p>
-                      <p className="text-xs" style={{ color: 'var(--hf-text)' }}>{selectedDoc.ai_summary}</p>
-                    </div>
-                  )}
-                </div>
+      <AdaptiveOverlay
+        open={!!selectedDoc}
+        onOpenChange={v => { if (!v) setSelectedDoc(null); }}
+        title={selectedDoc?.title || 'Document Detail'}
+        size="md"
+        showClose
+      >
+        {selectedDoc && (
+          <div className="space-y-3 text-sm">
+            {[
+              ['Type', selectedDoc.document_type?.replace(/_/g,' ')],
+              ['Owner', selectedDoc.created_by],
+              ['Status', selectedDoc.status],
+              ['Facility', selectedDoc.facility_name],
+              ['Doctor', selectedDoc.doctor_name],
+              ['Date', selectedDoc.document_date],
+              ['Created', selectedDoc.created_date ? format(new Date(selectedDoc.created_date), 'PPP') : '—'],
+              ['Health Score', selectedDoc.health_score],
+            ].map(([label, val]) => val ? (
+              <div key={label} className="flex justify-between">
+                <span style={{ color: 'var(--hf-text-muted)' }}>{label}</span>
+                <span className="font-semibold capitalize" style={{ color: 'var(--hf-text)' }}>{val}</span>
+              </div>
+            ) : null)}
+            {selectedDoc.ai_summary && (
+              <div className="mt-4 p-3 rounded-2xl" style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
+                <p className="text-xs font-bold mb-1" style={{ color: 'var(--hf-text-muted)' }}>AI Summary</p>
+                <p className="text-xs" style={{ color: 'var(--hf-text)' }}>{selectedDoc.ai_summary}</p>
               </div>
             )}
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+          </div>
+        )}
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

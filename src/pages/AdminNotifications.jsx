@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Bell, Plus, Trash2, Loader2, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -107,9 +107,7 @@ export default function AdminNotifications() {
         </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg rounded-[22px]" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader><DialogTitle style={{ color: 'var(--hf-text)' }}>Send Notification</DialogTitle></DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={setDialogOpen} title="Send Notification" size="md" showClose>
           <form onSubmit={e => { e.preventDefault(); createMutation.mutate(form); }} className="space-y-3">
             <div><Label style={{ color: 'var(--hf-text)' }}>Title *</Label>
               <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required className="rounded-xl"
@@ -147,8 +145,7 @@ export default function AdminNotifications() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

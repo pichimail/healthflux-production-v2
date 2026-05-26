@@ -6,7 +6,7 @@ import { Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Drawer } from 'vaul';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 
 export default function AdminInsights() {
   const [search, setSearch] = useState('');
@@ -111,44 +111,36 @@ export default function AdminInsights() {
         </div>
       </div>
 
-      {/* Insight Detail Drawer */}
-      <Drawer.Root open={!!selectedInsight} onOpenChange={v => { if (!v) setSelectedInsight(null); }}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl"
-            style={{ backgroundColor: 'var(--hf-surface)', maxHeight: '75dvh', border: '1px solid var(--hf-border)', borderBottom: 'none' }}>
-            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} /></div>
-            {selectedInsight && (
-              <div className="overflow-y-auto px-5 pb-10 pt-2">
-                <div className="flex items-start justify-between mb-4 gap-3">
-                  <h2 className="text-base font-bold" style={{ color: 'var(--hf-text)' }}>{selectedInsight.title}</h2>
-                  <button onClick={() => setSelectedInsight(null)}><X size={18} style={{ color: 'var(--hf-text-muted)' }} /></button>
-                </div>
-                <div className="space-y-3 text-sm">
-                  {[
-                    ['Type', selectedInsight.insight_type?.replace(/_/g,' ')],
-                    ['Severity', selectedInsight.severity],
-                    ['Owner', selectedInsight.created_by],
-                    ['Confidence', selectedInsight.ai_confidence ? `${(selectedInsight.ai_confidence * 100).toFixed(0)}%` : null],
-                    ['Created', selectedInsight.created_date ? format(new Date(selectedInsight.created_date), 'PPP') : '—'],
-                  ].map(([label, val]) => val ? (
-                    <div key={label} className="flex justify-between">
-                      <span style={{ color: 'var(--hf-text-muted)' }}>{label}</span>
-                      <span className="font-semibold capitalize" style={{ color: 'var(--hf-text)' }}>{val}</span>
-                    </div>
-                  ) : null)}
-                  {selectedInsight.description && (
-                    <div className="mt-4 p-3 rounded-2xl" style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
-                      <p className="text-xs font-bold mb-1" style={{ color: 'var(--hf-text-muted)' }}>Description</p>
-                      <p className="text-xs" style={{ color: 'var(--hf-text)' }}>{selectedInsight.description}</p>
-                    </div>
-                  )}
-                </div>
+      <AdaptiveOverlay
+        open={!!selectedInsight}
+        onOpenChange={v => { if (!v) setSelectedInsight(null); }}
+        title={selectedInsight?.title || 'Insight Detail'}
+        size="md"
+        showClose
+      >
+        {selectedInsight && (
+          <div className="space-y-3 text-sm">
+            {[
+              ['Type', selectedInsight.insight_type?.replace(/_/g,' ')],
+              ['Severity', selectedInsight.severity],
+              ['Owner', selectedInsight.created_by],
+              ['Confidence', selectedInsight.ai_confidence ? `${(selectedInsight.ai_confidence * 100).toFixed(0)}%` : null],
+              ['Created', selectedInsight.created_date ? format(new Date(selectedInsight.created_date), 'PPP') : '—'],
+            ].map(([label, val]) => val ? (
+              <div key={label} className="flex justify-between">
+                <span style={{ color: 'var(--hf-text-muted)' }}>{label}</span>
+                <span className="font-semibold capitalize" style={{ color: 'var(--hf-text)' }}>{val}</span>
+              </div>
+            ) : null)}
+            {selectedInsight.description && (
+              <div className="mt-4 p-3 rounded-2xl" style={{ background: 'var(--hf-surface-2)', border: '1px solid var(--hf-border)' }}>
+                <p className="text-xs font-bold mb-1" style={{ color: 'var(--hf-text-muted)' }}>Description</p>
+                <p className="text-xs" style={{ color: 'var(--hf-text)' }}>{selectedInsight.description}</p>
               </div>
             )}
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+          </div>
+        )}
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

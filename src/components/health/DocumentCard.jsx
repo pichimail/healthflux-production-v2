@@ -1,14 +1,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Image, MoreVertical, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { FileText, Image, MoreVertical, Loader2, AlertCircle, CheckCircle, Eye, RefreshCw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { AdaptiveMenu } from '@/components/ui/adaptive-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -94,24 +89,19 @@ export default function DocumentCard({ document, compact = false, onView, onDele
               </div>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <AdaptiveMenu
+            align="end"
+            trigger={
               <Button variant="ghost" size="icon" className="glass-button m-2 h-10 w-10 flex-shrink-0 rounded-xl hover:bg-white/10 sm:h-12 sm:w-12">
                 <MoreVertical className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="glass-panel-strong w-48 border-white/10 text-[var(--hf-text)]">
-              <DropdownMenuItem onClick={() => onView(document)}>View Details</DropdownMenuItem>
-              {document.status === 'failed' && onReprocess && (
-                <DropdownMenuItem onClick={() => onReprocess(document)} className="text-sky-300">
-                  Reprocess Document
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem className="text-red-300" onClick={() => onDelete(document)}>
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+            items={[
+              { label: 'View Details', icon: Eye, onClick: () => onView(document) },
+              { label: 'Reprocess Document', icon: RefreshCw, onClick: () => onReprocess(document), hidden: document.status !== 'failed' || !onReprocess },
+              { label: 'Delete', icon: Trash2, variant: 'destructive', onClick: () => onDelete(document), separator: true },
+            ]}
+          />
         </div>
       </CardContent>
     </Card>

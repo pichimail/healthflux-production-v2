@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Bell, Mail, Activity, Pill, Calendar, Sparkles, AlertTriangle, Trash2, ChevronRight, Loader2, Sun, Moon, Heart, Droplets, Footprints, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConnectedDevicesSection from '@/components/ConnectedDevicesSection';
@@ -378,9 +378,7 @@ export default function Settings() {
       </Card>
 
       {/* ── Multi-step Delete Dialog ── */}
-      <Dialog open={deleteStep > 0} onOpenChange={v => { if (!v) resetDelete(); }}>
-        <DialogContent className="rounded-3xl max-w-sm mx-auto p-0 overflow-hidden"
-          style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)' }}>
+      <AdaptiveOverlay open={deleteStep > 0} onOpenChange={v => { if (!v) resetDelete(); }} title="Delete Account" size="sm" showClose>
 
           <AnimatePresence mode="wait">
 
@@ -478,8 +476,7 @@ export default function Settings() {
             )}
 
           </AnimatePresence>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </div>
   );
 }

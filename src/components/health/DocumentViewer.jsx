@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,18 +14,7 @@ export default function DocumentViewer({ document, open, onClose, profileId }) {
   if (!document) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] sm:max-w-5xl h-[90vh] sm:h-[95vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="p-4 sm:p-6 border-b border-[var(--hf-border)] flex-shrink-0">
-          <DialogTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <span className="text-base sm:text-lg font-bold text-[var(--hf-text)] truncate pr-2">{document.title}</span>
-            {document.health_score && (
-              <Badge className="bg-blue-100 text-blue-700 text-sm sm:text-base px-2 sm:px-3 py-1 w-fit">
-                Score: {document.health_score}/100
-              </Badge>
-            )}
-          </DialogTitle>
-        </DialogHeader>
+    <AdaptiveOverlay open={open} onOpenChange={onClose} title={document.title} size="xl" showClose>
 
         <Tabs defaultValue="preview" className="flex-grow flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-4 mx-4 sm:mx-6 mt-2 rounded-2xl">
@@ -157,7 +146,6 @@ export default function DocumentViewer({ document, open, onClose, profileId }) {
             </TabsContent>
           </ScrollArea>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveOverlay>
   );
 }

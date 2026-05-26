@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Package, Plus, Edit, Trash2, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -146,12 +146,7 @@ export default function AdminPackages() {
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => !o && close_()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-[22px]"
-          style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: 'var(--hf-text)' }}>{editing ? 'Edit Package' : 'Create Package'}</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={o => !o && close_()} title={editing ? 'Edit Package' : 'Create Package'} size="md" showClose>
           <form onSubmit={submit} className="space-y-4">
             <div><Label style={{ color: 'var(--hf-text)' }}>Name *</Label>
               <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required className="rounded-xl mt-1"
@@ -216,8 +211,7 @@ export default function AdminPackages() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

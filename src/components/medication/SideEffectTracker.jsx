@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AlertCircle, Plus, Send, CheckCircle, Clock } from 'lucide-react';
@@ -197,11 +197,7 @@ Notes: ${sideEffect.notes || 'None'}`;
       </CardContent>
     </Card>
 
-    <Dialog open={showForm} onOpenChange={setShowForm}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl p-4 sm:p-6 rounded-3xl">
-        <DialogHeader>
-          <DialogTitle className="text-base sm:text-lg">Log Side Effect</DialogTitle>
-        </DialogHeader>
+    <AdaptiveOverlay open={showForm} onOpenChange={setShowForm} title="Log Side Effect" size="md" showClose>
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 mt-4">
           <div className="space-y-2">
             <Label className="text-sm">Medication *</Label>
@@ -304,8 +300,7 @@ Notes: ${sideEffect.notes || 'None'}`;
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </AdaptiveOverlay>
     </>
   );
 }

@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Drawer } from 'vaul';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { toast } from 'sonner';
 import { Users, Plus, X, Activity, Pill, FileText, TestTube, Brain, Mail, Loader2, MessageCircle } from 'lucide-react';
 import ChatThread from '@/components/care/ChatThread';
@@ -36,7 +35,6 @@ export default function CareCircle() {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [form, setForm] = useState(BLANK_FORM);
-  const [isMobile] = useState(() => window.innerWidth < 768);
   const [chatWith, setChatWith] = useState(null);
   const qc = useQueryClient();
 
@@ -270,24 +268,15 @@ export default function CareCircle() {
         </div>
       )}
 
-      {isMobile ? (
-        <Drawer.Root open={inviteOpen} onOpenChange={v => { if (!v) { setInviteOpen(false); setForm(BLANK_FORM); } }}>
-          <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50" />
-            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl max-h-[95dvh] overflow-y-auto" style={{ background: 'var(--hf-surface)' }}>
-              <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1.5 rounded-full" style={{ background: 'var(--hf-border-strong)' }} /></div>
-              <div className="px-5 pb-10"><h2 className="text-base font-bold mb-1" style={{ color: 'var(--hf-text)' }}>Invite to Care Circle</h2>{FormContent}</div>
-            </Drawer.Content>
-          </Drawer.Portal>
-        </Drawer.Root>
-      ) : (
-        <Dialog open={inviteOpen} onOpenChange={v => { if (!v) { setInviteOpen(false); setForm(BLANK_FORM); } }}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl" style={{ background: 'var(--hf-surface)', color: 'var(--hf-text)' }}>
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><Users size={16} style={{ color: 'var(--hf-lemon-strong)' }} /> Invite to Care Circle</DialogTitle></DialogHeader>
-            {FormContent}
-          </DialogContent>
-        </Dialog>
-      )}
+      <AdaptiveOverlay
+        open={inviteOpen}
+        onOpenChange={v => { if (!v) { setInviteOpen(false); setForm(BLANK_FORM); } }}
+        title="Invite to Care Circle"
+        size="md"
+        showClose
+      >
+        {FormContent}
+      </AdaptiveOverlay>
     </div>
   );
 }

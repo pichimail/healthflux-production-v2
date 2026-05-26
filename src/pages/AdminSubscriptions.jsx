@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Search, Plus, Edit, Loader2, CreditCard, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -236,11 +236,7 @@ export default function AdminSubscriptions() {
       </div>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-[28px] max-w-md p-6" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)', color: 'var(--hf-text)' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: 'var(--hf-text)' }}>{editingSub ? 'Edit Subscription' : 'New Subscription'}</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={setDialogOpen} title={editingSub ? 'Edit Subscription' : 'New Subscription'} size="md" showClose>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1">
               <Label className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>User Email *</Label>
@@ -303,8 +299,7 @@ export default function AdminSubscriptions() {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </AdminLayout>
   );
 }

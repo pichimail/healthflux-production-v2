@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AdaptiveOverlay } from '@/components/ui/adaptive-overlay';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Star, TrendingUp } from 'lucide-react';
@@ -111,11 +111,7 @@ export default function EffectivenessTracker({ medication, profileId }) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base">Rate Effectiveness</DialogTitle>
-          </DialogHeader>
+      <AdaptiveOverlay open={dialogOpen} onOpenChange={setDialogOpen} title="Rate Effectiveness" size="md" showClose>
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <Label className="text-sm">Rating</Label>
@@ -187,8 +183,7 @@ export default function EffectivenessTracker({ medication, profileId }) {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </AdaptiveOverlay>
     </>);
 
 }
