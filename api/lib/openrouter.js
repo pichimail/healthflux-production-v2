@@ -25,7 +25,8 @@ export const MODEL_MAP = {
   healthCoaching:         'anthropic/claude-sonnet-4',
   reconcileMedications:   'anthropic/claude-sonnet-4',
   symptomTriage:          'anthropic/claude-sonnet-4',
-  documentAnalysis:       'anthropic/claude-sonnet-4',
+  documentAnalysis:       'google/gemini-2.5-pro-preview',
+  documentProcessor:      'google/gemini-2.5-pro-preview',
 
   // Gemini 2.5 Pro — vision/image
   analyzeMedicalImage:    'google/gemini-2.5-pro-preview',

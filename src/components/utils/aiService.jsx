@@ -178,6 +178,7 @@ export async function generateProviderReport(params)     { return callRoute('pro
 export async function analyzeAdherence(params)           { return callRoute('analyze-adherence', params); }
 export async function enhancedDocumentProcessor(params)  { return callRoute('enhanced-document', params); }
 export async function generateEnhancedReport(params)     { return callRoute('enhanced-report', params); }
+export async function documentProcessor(params)          { return callRoute('document-processor', params); }
 
 // ═══════════════════════════════════════════════════════════════
 // LEGACY SHIM — maps base44.functions.invoke('name', params)
@@ -193,6 +194,7 @@ const FUNCTION_MAP = {
   extractInsuranceData, multiSnapAnalyze, enhancedDocumentSummary,
   predictiveHealthAnalysis, healthPredictions, generateProviderReport,
   analyzeAdherence, enhancedDocumentProcessor, generateEnhancedReport,
+  documentProcessor,
 };
 
 export async function invokeFunction(name, params = {}) {

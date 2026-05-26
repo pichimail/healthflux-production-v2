@@ -69,6 +69,46 @@ app.use('/api/ai', apiLimiter, requireAuth, aiRouter);
 app.use('/api/abha', requireAuth, abhaRouter);           // ABHA needs auth
 app.use('/api/payments', requireAuth, paymentsRouter);
 
+// ─── Admin: Run schema migration (service-role only) ──────────
+app.post('/api/admin/run-migration', requireAuth, async (req, res) => {
+  try {
+    const userEmail = req.user?.email;
+    if (!userEmail) return res.status(403).json({ error: 'Auth required' });
+
+    // Only allow admin email to trigger migration
+    const { data: adminCheck } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('created_by', userEmail)
+      .eq('relationship', 'self')
+      .limit(1)
+      .single();
+
+    const isAdmin = adminCheck?.role === 'admin' || userEmail === 'pichimail24@gmail.com';
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    // Run each statement via RPC if available, or just report the SQL to run
+    const migrations = [
+      `ALTER TABLE medical_documents ADD COLUMN IF NOT EXISTS file_name TEXT`,
+      `ALTER TABLE medical_documents ADD COLUMN IF NOT EXISTS file_type TEXT`,
+      `ALTER TABLE medical_documents ADD COLUMN IF NOT EXISTS facility_name TEXT`,
+      `ALTER TABLE medical_documents ADD COLUMN IF NOT EXISTS doctor_name TEXT`,
+      `ALTER TABLE medical_documents ADD COLUMN IF NOT EXISTS action_items JSONB DEFAULT '[]'`,
+      `UPDATE profiles SET role = 'admin' WHERE created_by = 'pichimail24@gmail.com' AND relationship = 'self'`,
+      `GRANT USAGE ON SCHEMA public TO service_role`,
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role`,
+    ];
+
+    res.json({
+      message: 'Run these SQL statements in Supabase SQL Editor to complete the migration',
+      sql: migrations.join(';\n') + ';',
+      supabaseUrl: 'https://supabase.com/dashboard/project/djmbleoaddmleofhskxu/sql/new',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({

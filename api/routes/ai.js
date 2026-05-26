@@ -197,6 +197,78 @@ Include the primary policyholder with relationship "self". Extract every person 
   return callAIJSON('extractInsuranceData', system, user, { imageUrls: fileUrl ? [fileUrl] : [] });
 }));
 
+// ─── Document Processor (primary upload+AI extraction route) ────────────────
+router.post('/document-processor', wrap(async (b) => {
+  const { file_url, file_name, file_type, notes, source, document_id, profile_id } = b;
+  const isImage = (file_type || '').startsWith('image/') || source === 'scan';
+  const isPDF = (file_type || '').includes('pdf') || (file_name || '').toLowerCase().endsWith('.pdf');
+
+  const system = `You are a medical document AI specialist. Extract ALL structured data from the provided medical document with maximum accuracy.
+Return ONLY a valid JSON object. No extra text. Use this exact structure:
+{
+  "document_type": "lab_report|prescription|discharge_summary|imaging|insurance|vaccination|other",
+  "document_title": "string",
+  "document_date": "YYYY-MM-DD or null",
+  "facility_name": "string or null",
+  "doctor_name": "string or null",
+  "ai_summary": "3-5 sentence summary of key findings",
+  "key_findings": ["finding1", "finding2"],
+  "action_items": ["action1", "action2"],
+  "risk_factors": ["risk1", "risk2"],
+  "health_score": number_0_to_100_or_null,
+  "extracted_lab_results": [
+    { "test_name": "string", "value": "string", "unit": "string", "reference_range": "string", "flag": "normal|high|low|critical_high|critical_low" }
+  ],
+  "extracted_medications": [
+    { "name": "string", "dosage": "string", "frequency": "string", "instructions": "string" }
+  ],
+  "extracted_vitals": [
+    { "type": "string", "value": "string", "unit": "string" }
+  ]
+}`;
+
+  const userContext = `Document: ${file_name || 'medical document'}\nType hint: ${file_type || 'unknown'}\nNotes: ${notes || 'none'}\nExtract all medical data from this document.`;
+
+  let result;
+  if (isImage && file_url) {
+    result = await callAIJSON('documentAnalysis', system, userContext, { imageUrls: [file_url] });
+  } else if (isPDF && file_url) {
+    // For PDFs, use vision on the URL (Gemini can handle PDF URLs as images)
+    result = await callAIJSON('documentAnalysis', system, userContext, { imageUrls: [file_url] });
+  } else if (file_url) {
+    result = await callAIJSON('documentAnalysis', system, userContext, { imageUrls: [file_url] });
+  } else {
+    result = await callAIJSON('documentAnalysis', system, userContext, {});
+  }
+
+  // Shape the response so mapProcessedDocumentUpdates can parse it
+  return {
+    success: true,
+    document_id,
+    profile_id,
+    status: 'completed',
+    extractedData: {
+      document_type: result.document_type || 'other',
+      document_title: result.document_title || file_name || 'Uploaded Document',
+      document_date: result.document_date || null,
+      facility_name: result.facility_name || null,
+      doctor_name: result.doctor_name || null,
+      lab_results: result.extracted_lab_results || [],
+      medications: result.extracted_medications || [],
+      vitals: result.extracted_vitals || [],
+      summary: result.ai_summary || '',
+      key_findings: result.key_findings || [],
+    },
+    aiAnalysis: {
+      summary: result.ai_summary || '',
+      key_findings: result.key_findings || [],
+      action_items: result.action_items || [],
+      risk_factors: result.risk_factors || [],
+      health_score: result.health_score || null,
+    },
+  };
+}));
+
 router.post('/multi-snap', wrap(async (b) => {
   const system = `Analyze multiple medical images together for comprehensive assessment.`;
   const user = `Perform ${b.analysisType || 'comprehensive'} analysis of these ${b.imageUrls?.length || 0} images together.`;

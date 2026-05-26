@@ -104,6 +104,9 @@ function createEntityProxy(entityName) {
 
     /**
      * create(record)
+     * Tries full insert first; if Supabase rejects with unknown-column error (42703),
+     * retries with only the safe core columns. This makes uploads resilient to
+     * schema drifts until migration 011 is applied.
      */
     async create(record) {
       // Auto-inject created_by from auth
@@ -115,19 +118,54 @@ function createEntityProxy(entityName) {
         }
       } catch {}
       const { data, error } = await db.from(table).insert(enriched).select();
-      if (error) throw error;
+      if (error) {
+        // 42703 = undefined_column; strip unknown extras and retry once
+        if (error.code === '42703' || (error.message || '').includes('column') && (error.message || '').includes('does not exist')) {
+          const SAFE_COLS = new Set([
+            'created_by','profile_id','title','document_type','file_url',
+            'document_date','notes','ai_summary','ai_summary_detailed',
+            'key_findings','ai_tags','user_tags','extracted_medications',
+            'extracted_vitals','extracted_lab_results','health_score',
+            'risk_factors','status','created_date','updated_date',
+            // extended columns from migration 011
+            'file_name','file_type','facility_name','doctor_name','action_items',
+          ]);
+          const safe = Object.fromEntries(Object.entries(enriched).filter(([k]) => SAFE_COLS.has(k)));
+          // Remove columns that might not exist in older schema
+          const minSafe = Object.fromEntries(Object.entries(safe).filter(([k]) =>
+            !['file_name','file_type','facility_name','doctor_name','action_items'].includes(k)
+          ));
+          const { data: d2, error: e2 } = await db.from(table).insert(minSafe).select();
+          if (e2) throw e2;
+          return d2?.[0] || d2;
+        }
+        throw error;
+      }
       return data?.[0] || data;
     },
 
     /**
      * update(id, changes)
+     * Retries without unknown columns if schema hasn't been migrated yet.
      */
     async update(id, changes) {
-      const result = await db.from(table)
+      const payload = { ...changes, updated_date: new Date().toISOString() };
+      const { data, error } = await db.from(table)
+        .update(payload)
         .eq('id', id)
-        .update({ ...changes, updated_date: new Date().toISOString() });
-      if (result.error) throw result.error;
-      return result.data?.[0] || result.data;
+        .select();
+      if (error) {
+        if (error.code === '42703' || (error.message || '').includes('column') && (error.message || '').includes('does not exist')) {
+          // Strip potentially-missing columns and retry
+          const MAYBE_MISSING = new Set(['file_name','file_type','facility_name','doctor_name','action_items']);
+          const safe = Object.fromEntries(Object.entries(payload).filter(([k]) => !MAYBE_MISSING.has(k)));
+          const { data: d2, error: e2 } = await db.from(table).update(safe).eq('id', id).select();
+          if (e2) throw e2;
+          return d2?.[0] || d2;
+        }
+        throw error;
+      }
+      return data?.[0] || data;
     },
 
     /**
@@ -173,12 +211,25 @@ const authProxy = {
     const { data } = await db.auth.getUser();
     const user = data?.user;
     if (!user) throw new Error('Not authenticated');
+    const email = user.email || user.user_metadata?.email || '';
+    // Read role from profiles table (source of truth), fall back to user_metadata
+    let role = user.user_metadata?.role || 'user';
+    try {
+      const { data: profiles } = await db
+        .from('profiles')
+        .select('role')
+        .eq('relationship', 'self')
+        .limit(1);
+      if (profiles?.[0]?.role) role = profiles[0].role;
+    } catch {}
+    // Hardcoded admin for owner account
+    if (email === 'pichimail24@gmail.com') role = 'admin';
     return {
       id: user.id,
-      email: user.email || user.user_metadata?.email,
+      email,
       full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
       avatar_url: user.user_metadata?.avatar_url || '',
-      role: user.user_metadata?.role || 'user',
+      role,
     };
   },
   async logout(redirectUrl) {
@@ -233,6 +284,9 @@ const FUNCTION_ROUTE_MAP = {
   semanticDocumentSearch: 'document-search',
   reconcileMedications: 'reconcile-medications',
   ocrLabReport: 'ocr-lab-report',
+  documentProcessor: 'document-processor',
+  enhancedDocumentProcessor: 'enhanced-document',
+  enhancedDocumentSummary: 'enhanced-summary',
 };
 
 const functionsProxy = {
