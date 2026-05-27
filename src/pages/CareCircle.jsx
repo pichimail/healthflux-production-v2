@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Users, Plus, X, Activity, Pill, FileText, TestTube, Brain, Mail, Loader2, MessageCircle } from 'lucide-react';
 import ChatThread from '@/components/care/ChatThread';
 import { format } from 'date-fns';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 const PERMS = [
   { key: 'view_vitals',      label: 'Vitals',       icon: Activity, color: 'var(--hf-sky-strong)' },
@@ -31,6 +32,7 @@ const STATUS = {
 };
 
 export default function CareCircle() {
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const [user, setUser] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -47,7 +49,12 @@ export default function CareCircle() {
 
   const { data: profiles = [] } = useQuery({ queryKey: ['profiles', user?.email], queryFn: () => base44.entities.Profile.filter({ created_by: user.email }, '-created_date'), enabled: !!user });
   const { data: circle = [] } = useQuery({ queryKey: ['careCircle', selectedProfile, user?.email], queryFn: () => base44.entities.CareCircle.filter({ profile_id: selectedProfile, created_by: user.email }), enabled: !!selectedProfile && !!user });
-  const { data: sharedWithMe = [] } = useQuery({ queryKey: ['sharedWithMe', user?.email], queryFn: () => base44.entities.CareCircle.filter({ caregiver_email: user.email, status: 'active' }), enabled: !!user?.email });
+  const caregiverPortalEnabled = !flagsLoading && hasFeature('caregiver_portal');
+  const { data: sharedWithMe = [] } = useQuery({
+    queryKey: ['sharedWithMe', user?.email],
+    queryFn: () => base44.entities.CareCircle.filter({ caregiver_email: user.email, status: 'active' }),
+    enabled: !!user?.email && caregiverPortalEnabled,
+  });
 
   const inviteMut = useMutation({
     mutationFn: (d) => base44.entities.CareCircle.create(d),
@@ -247,7 +254,7 @@ export default function CareCircle() {
       </div>
 
       {/* Shared with me */}
-      {sharedWithMe.length > 0 && (
+      {caregiverPortalEnabled && sharedWithMe.length > 0 && (
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest mb-3 px-1" style={{ color: 'var(--hf-text-muted)' }}>Profiles you're caring for</p>
           <div className="space-y-2">

@@ -11,6 +11,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useActiveProfile } from '../components/ActiveProfileContext';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 import UniversalUpload from '../components/UniversalUpload';
 import DocumentExtractedView from '../components/documents/DocumentExtractedView';
 import { MarkdownPreview } from '@/components/ui/markdown-content';
@@ -217,11 +218,16 @@ function DocumentCard({ doc, onView, onDelete, onReprocess, onOCR, viewMode }) {
 
 export default function Documents() {
   const { activeProfileId, allProfiles } = useActiveProfile();
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const [showUpload, setShowUpload] = useState(false);
   const [ocrDoc, setOcrDoc] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
 
   const runOCR = async (doc) => {
+    if (flagsLoading || !hasFeature('ocr_lab_reports')) {
+      toast.error('OCR lab extraction is currently disabled');
+      return;
+    }
     if (!doc?.file_url || !activeProfileId) return;
     setOcrDoc(doc.id);
     setOcrLoading(true);
@@ -262,6 +268,8 @@ export default function Documents() {
 
   const [isSemanticSearching, setIsSemanticSearching] = useState(false);
   const [semanticResults, setSemanticResults] = useState(null);
+  const ocrLabReportsEnabled = !flagsLoading && hasFeature('ocr_lab_reports');
+  const docAutoLinkProfilesEnabled = !flagsLoading && hasFeature('doc_auto_link_profiles');
 
   const performSemanticSearch = async (query) => {
     if (!query.trim() || query.length < 3) {
@@ -438,7 +446,7 @@ export default function Documents() {
               onView={setSelectedDoc}
               onDelete={setPendingDeleteDoc}
               onReprocess={processDocumentWithAI}
-              onOCR={runOCR} />
+              onOCR={ocrLabReportsEnabled ? runOCR : null} />
 
             )}
               </div>
@@ -453,6 +461,7 @@ export default function Documents() {
         onClose={() => setShowUpload(false)}
         profileId={activeProfileId}
         profiles={allProfiles}
+        autoLinkProfilesEnabled={docAutoLinkProfilesEnabled}
         onSuccess={() => {
           // Just refresh list — modal closes itself after showing the extracted view
           queryClient.invalidateQueries({ queryKey: ['documents', activeProfileId] });

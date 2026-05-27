@@ -11,6 +11,7 @@
  * Entity → Table name mapping handles camelCase → snake_case automatically.
  */
 import db from '@/lib/db';
+import { getSupabaseClient } from '@/lib/db';
 import { Core as IntegrationsCore } from '@/api/integrations';
 
 // CamelCase entity → snake_case table mapping
@@ -181,15 +182,44 @@ function createEntityProxy(entityName) {
      * subscribe(callback) — Supabase realtime, noop for Neon
      */
     subscribe(callback) {
-      // Only works with Supabase
-      if (db.provider === 'supabase') {
-        import('@supabase/supabase-js').then(async () => {
-          const sb = await import('@/lib/db').then(m => m.default);
-          // Supabase realtime subscription would go here
-          // For now, return a noop unsubscribe
-        });
-      }
-      return () => {}; // unsubscribe function
+      if (db.provider !== 'supabase') return () => {};
+
+      let channel = null;
+      let disposed = false;
+
+      (async () => {
+        try {
+          const sb = await getSupabaseClient();
+          if (disposed) return;
+
+          channel = sb
+            .channel(`realtime:${table}:${Math.random().toString(36).slice(2)}`)
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table },
+              (payload) => {
+                if (!callback) return;
+                const eventType = (payload.eventType || '').toLowerCase();
+                callback({
+                  type: eventType,
+                  data: payload.new ?? payload.old ?? null,
+                  raw: payload,
+                });
+              }
+            )
+            .subscribe();
+        } catch {
+          // Keep behavior non-breaking if realtime subscription fails.
+        }
+      })();
+
+      return () => {
+        disposed = true;
+        if (!channel) return;
+        getSupabaseClient().then((sb) => {
+          sb.removeChannel(channel);
+        }).catch(() => {});
+      };
     },
   };
 }

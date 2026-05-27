@@ -12,9 +12,11 @@ import ConnectedDevicesSection from '@/components/ConnectedDevicesSection';
 import { useActiveProfile } from '@/components/ActiveProfileContext';
 import { useTheme } from '@/lib/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 export default function Settings() {
   const { activeProfile } = useActiveProfile();
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const [deleteStep, setDeleteStep] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -94,6 +96,12 @@ export default function Settings() {
   });
 
   const handleToggle = (setting) => {
+    const emailNotificationsEnabled = !flagsLoading && hasFeature('notifications_email');
+    const inAppNotificationsEnabled = !flagsLoading && hasFeature('notifications_inapp');
+    const isEmailSetting = setting === 'email_enabled';
+    if ((isEmailSetting && !emailNotificationsEnabled) || (!isEmailSetting && !inAppNotificationsEnabled)) {
+      return;
+    }
     const newNotifications = {
       ...preferences?.notifications,
       [setting]: !preferences?.notifications?.[setting],
@@ -119,6 +127,8 @@ export default function Settings() {
   };
 
   const notifications = preferences?.notifications || defaultNotifications;
+  const emailNotificationsEnabled = !flagsLoading && hasFeature('notifications_email');
+  const inAppNotificationsEnabled = !flagsLoading && hasFeature('notifications_inapp');
 
   return (
     <div className="bento-page">
@@ -159,7 +169,13 @@ export default function Settings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
+          {!emailNotificationsEnabled && !inAppNotificationsEnabled && (
+            <div className="p-3 sm:p-4 rounded-2xl text-xs" style={{ background: 'var(--hf-surface-2)', color: 'var(--hf-text-muted)' }}>
+              Notifications are currently disabled for your account.
+            </div>
+          )}
           <div className="space-y-2 sm:space-y-3">
+            {emailNotificationsEnabled && (
             <div className="flex items-center justify-between p-3 sm:p-4 bg-[var(--hf-surface-2)] rounded-2xl">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <Mail className="w-4 sm:w-5 h-4 sm:h-5 text-blue-600 flex-shrink-0" />
@@ -174,7 +190,10 @@ export default function Settings() {
                 className="flex-shrink-0"
               />
             </div>
+            )}
 
+            {inAppNotificationsEnabled && (
+            <>
             <div className="flex items-center justify-between p-3 sm:p-4 bg-[var(--hf-surface-2)] rounded-2xl">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-green-600 flex-shrink-0" />
@@ -249,6 +268,8 @@ export default function Settings() {
                 className="flex-shrink-0"
               />
             </div>
+            </>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -14,6 +14,7 @@ import HeartRateMonitor from '@/components/HeartRateMonitor';
 import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
 import { useActiveProfile } from '../components/ActiveProfileContext';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 const VITAL_CONFIG = {
   blood_pressure:    { label: 'Blood Pressure', unit: 'mmHg', color: 'var(--hf-coral-strong)', tc: '#3d0000', icon: '🫀', normalLow: 90, normalHigh: 140 },
@@ -142,6 +143,7 @@ function VitalCard({ type, vitals, onDelete }) {
 
 export default function Vitals() {
   const { activeProfileId, activeProfile } = useActiveProfile();
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [showHRM, setShowHRM] = useState(false);
@@ -201,6 +203,7 @@ export default function Vitals() {
   };
 
   const vitalTypes = useMemo(() => [...new Set(vitals.map(v => v.vital_type))], [vitals]);
+  const heartRateCameraEnabled = !flagsLoading && hasFeature('heart_rate_camera');
   const weeklyCount = vitals.filter(v => new Date(v.measured_at) > subDays(new Date(), 7)).length;
   const abnormal = vitals.filter(v => {
     const cfg = VITAL_CONFIG[v.vital_type];
@@ -252,9 +255,11 @@ export default function Vitals() {
           <p className="bento-subtitle">{activeProfile?.full_name || 'Your'} vitals tracker</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { Haptics.light(); setShowHRM(true); }} className="h-10 px-3 rounded-2xl font-bold flex items-center gap-1.5 text-xs" style={{ background: 'rgba(242,140,140,0.15)', border: '1px solid rgba(242,140,140,0.3)', color: 'var(--hf-coral-strong)' }}>
-            <Heart size={14} /> HR
-          </button>
+          {heartRateCameraEnabled && (
+            <button onClick={() => { Haptics.light(); setShowHRM(true); }} className="h-10 px-3 rounded-2xl font-bold flex items-center gap-1.5 text-xs" style={{ background: 'rgba(242,140,140,0.15)', border: '1px solid rgba(242,140,140,0.3)', color: 'var(--hf-coral-strong)' }}>
+              <Heart size={14} /> HR
+            </button>
+          )}
           <Button onClick={() => { Haptics.light(); setOpen(true); }} className="h-10 px-5 rounded-2xl font-bold" style={{ background: '#9bb4ff', color: '#0a1240' }}>
             <Plus size={14} className="mr-1" /> Log
           </Button>
@@ -293,7 +298,7 @@ export default function Vitals() {
       )}
 
       {/* Heart Rate Monitor Modal */}
-      {showHRM && <HeartRateMonitor profileId={activeProfileId} onClose={() => setShowHRM(false)} onSave={() => qc.invalidateQueries(['vitals', activeProfileId])} />}
+      {heartRateCameraEnabled && showHRM && <HeartRateMonitor profileId={activeProfileId} onClose={() => setShowHRM(false)} onSave={() => qc.invalidateQueries(['vitals', activeProfileId])} />}
 
       <ResponsiveOverlay
         open={open}

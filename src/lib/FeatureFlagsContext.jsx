@@ -8,7 +8,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { base44 } from '@/api/base44Client';
 
 // ── Plan defaults ──────────────────────────────────────────────────────────
-const PLAN_DEFAULTS = {
+export const PLAN_DEFAULTS = {
   free: {
     universal_upload: true, ocr_processing: false, doc_auto_link_profiles: true,
     ai_insights_generate: false, ai_summary_generate: false, triage_mode: true,
@@ -91,6 +91,20 @@ const PLAN_DEFAULTS = {
 
 const GLOBAL_DEFAULTS = PLAN_DEFAULTS.free; // fallback when no subscription — fail closed, not open
 
+export function resolveFeatureFlags(assignments = [], plan = 'free', userEmail = '') {
+  const planDefaults = PLAN_DEFAULTS[plan] || PLAN_DEFAULTS.free;
+  const resolved = { ...planDefaults };
+  const global = assignments.filter(a => a.scope_type === 'global');
+  const planOvr = assignments.filter(a => a.scope_type === 'plan' && a.scope_id === plan);
+  const userOvr = assignments.filter(a => a.scope_type === 'user' && a.scope_id === userEmail);
+  const ordered = [...global, ...planOvr, ...userOvr]
+    .sort((a, b) => new Date(a.created_date || 0).getTime() - new Date(b.created_date || 0).getTime());
+  ordered.forEach((a) => {
+    resolved[a.flag_key] = a.state;
+  });
+  return resolved;
+}
+
 // ── Context ────────────────────────────────────────────────────────────────
 const FeatureFlagsContext = createContext(null);
 
@@ -100,21 +114,9 @@ export function FeatureFlagsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const userEmailRef = useRef(null);
 
-  const resolve = useCallback((assignments, plan, userEmail) => {
-    const planDefaults = PLAN_DEFAULTS[plan] || PLAN_DEFAULTS.free;
-    const resolved = { ...planDefaults };
-
-    // Apply overrides: global < plan < user  (higher specificity wins)
-    const global  = assignments.filter(a => a.scope_type === 'global');
-    const planOvr = assignments.filter(a => a.scope_type === 'plan' && a.scope_id === plan);
-    const userOvr = assignments.filter(a => a.scope_type === 'user' && a.scope_id === userEmail);
-
-    [...global, ...planOvr, ...userOvr].forEach(a => {
-      resolved[a.flag_key] = a.state;
-    });
-
-    return resolved;
-  }, []);
+  const resolve = useCallback((assignments, plan, userEmail) => (
+    resolveFeatureFlags(assignments, plan, userEmail)
+  ), []);
 
   const load = useCallback(async () => {
     try {

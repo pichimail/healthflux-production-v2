@@ -22,7 +22,7 @@ function fileIcon(file) {
 }
 
 // Phase: 'pick' | 'processing'
-function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }) {
+function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile, autoLinkProfilesEnabled = true }) {
   const [profileSel, setProfileSel] = useState(profileId || (profiles[0]?.id ?? ''));
   const [notes, setNotes] = useState('');
   const [file, setFile] = useState(initialFile || null);
@@ -63,6 +63,7 @@ function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }
       processUploadedDocument(document, {
         notes,
         source: file.type.startsWith('image/') ? 'scan' : 'upload',
+        autoLinkProfiles: autoLinkProfilesEnabled,
       }).catch((invokeError) => console.warn('Document processing invoke error:', invokeError));
     } catch {
       setUploading(false);
@@ -180,7 +181,7 @@ function UploadInner({ profileId, profiles = [], onProcessingDone, initialFile }
   );
 }
 
-export default function UniversalUpload({ open, onClose, profileId, profiles = [], onSuccess, initialFile }) {
+export default function UniversalUpload({ open, onClose, profileId, profiles = [], onSuccess, initialFile, autoLinkProfilesEnabled = true }) {
   const [extractedDoc, setExtractedDoc] = useState(null);
   const [showExtracted, setShowExtracted] = useState(false);
 
@@ -202,6 +203,7 @@ export default function UniversalUpload({ open, onClose, profileId, profiles = [
       profiles={profiles}
       onProcessingDone={handleProcessingDone}
       initialFile={initialFile}
+      autoLinkProfilesEnabled={autoLinkProfilesEnabled}
     />
   );
 

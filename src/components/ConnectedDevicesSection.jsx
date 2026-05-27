@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, Link2, Unlink, Smartphone } from 'lucide-react';
 import { isHealthSyncAvailable, requestHealthPermissions, syncAllVitals } from '@/lib/healthBridge';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 const DEVICE_CATALOG = [
   {
@@ -178,6 +179,7 @@ function DeviceCard({ device, connectedDevice, profileId, onSync }) {
 }
 
 export default function ConnectedDevicesSection({ profileId }) {
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const { data: connectedDevices = [], isLoading } = useQuery({
     queryKey: ['connected-devices', profileId],
     queryFn: () => base44.entities.ConnectedDevice.filter({ profile_id: profileId }, '-updated_date', 20),
@@ -185,6 +187,15 @@ export default function ConnectedDevicesSection({ profileId }) {
   });
 
   if (!profileId) return null;
+
+  const enabledCatalog = DEVICE_CATALOG.filter((device) => {
+    if (device.key === 'apple_health') return !flagsLoading && hasFeature('apple_health_import');
+    if (device.key === 'google_fit') return !flagsLoading && hasFeature('wearable_integrations_google_fit');
+    if (device.key === 'fitbit') return !flagsLoading && hasFeature('wearable_integrations_fitbit');
+    return true;
+  });
+
+  if (!enabledCatalog.length) return null;
 
   return (
     <div className="rounded-2xl p-4" style={{ background: 'var(--hf-surface)', border: '1px solid var(--hf-border)' }}>
@@ -202,7 +213,7 @@ export default function ConnectedDevicesSection({ profileId }) {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {DEVICE_CATALOG.map((device) => {
+          {enabledCatalog.map((device) => {
             const connectedDevice = connectedDevices.find((d) => d.device_type === device.key && d.is_connected);
             return (
               <DeviceCard

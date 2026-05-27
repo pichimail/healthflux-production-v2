@@ -12,6 +12,7 @@ import { Star, Video, Calendar, Search, FileText, CheckCircle, X, Plus } from 'l
 import { format, isFuture, isPast } from 'date-fns';
 import { toast } from 'sonner';
 import { listDocuments } from '@/services/documents';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 import {
   bookTelehealthAppointment,
   cancelTelehealthAppointment,
@@ -83,14 +84,14 @@ function DoctorCard({ doctor, onBook, canBook }) {
   );
 }
 
-function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents }) {
+function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents, bookingFeatureEnabled }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [reason, setReason] = useState('');
   const [selectedDocIds, setSelectedDocIds] = useState([]);
   const [booked, setBooked] = useState(false);
   const qc = useQueryClient();
   const bookingAvailability = getTelehealthBookingAvailability();
-  const bookingEnabled = bookingAvailability.status === 'ready';
+  const bookingEnabled = bookingFeatureEnabled && bookingAvailability.status === 'ready';
 
   const mutation = useMutation({
     mutationFn: bookTelehealthAppointment,
@@ -103,6 +104,7 @@ function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents
   });
 
   const handleBook = () => {
+    if (!bookingFeatureEnabled) { toast.error('Telehealth booking is currently disabled'); return; }
     if (!selectedSlot) { toast.error('Please select a time slot'); return; }
     const dt = new Date(`${selectedSlot.date}T${selectedSlot.time}`);
     mutation.mutate({
@@ -122,6 +124,9 @@ function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents
 
   if (!doctor) return null;
   const slots = doctor.available_slots?.filter(s => !s.is_booked) || [];
+  const disabledReason = !bookingFeatureEnabled
+    ? 'Telehealth booking is turned off for your account.'
+    : bookingAvailability.reason;
 
   return (
     <AdaptiveOverlay open={open} onOpenChange={o => { if (!o) { onClose(); setBooked(false); setSelectedSlot(null); setReason(''); setSelectedDocIds([]); } }} title={`Book with ${doctor.name}`} size="lg" showClose>
@@ -138,9 +143,9 @@ function BookingDialog({ doctor, open, onClose, user, activeProfileId, documents
           </div>
         ) : (
           <div className="space-y-4 mt-2">
-            {!bookingEnabled && (
+            {!bookingEnabled && disabledReason && (
               <div className="rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: 'var(--hf-border)', background: 'var(--hf-surface-2)', color: 'var(--hf-text-muted)' }}>
-                {bookingAvailability.reason}
+                {disabledReason}
               </div>
             )}
             {/* Slots */}
@@ -301,6 +306,7 @@ function AddDoctorDialog({ open, onClose }) {
 
 export default function Telehealth() {
   const { user, activeProfileId } = useActiveProfile();
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const [search, setSearch] = useState('');
   const [specialty, setSpecialty] = useState('All');
   const [bookingDoctor, setBookingDoctor] = useState(null);
@@ -344,7 +350,13 @@ export default function Telehealth() {
   const upcoming = appointments.filter(a => a.status !== 'cancelled' && isFuture(new Date(a.scheduled_at)));
   const past = appointments.filter(a => a.status === 'cancelled' || isPast(new Date(a.scheduled_at)));
   const bookingAvailability = getTelehealthBookingAvailability();
-  const canBook = bookingAvailability.status === 'ready';
+  const bookingFeatureEnabled = !flagsLoading && hasFeature('telehealth_booking');
+  const videoFeatureEnabled = !flagsLoading && hasFeature('telehealth_video');
+  const cancelFeatureEnabled = !flagsLoading && hasFeature('telehealth_cancel_appointment');
+  const canBook = bookingFeatureEnabled && bookingAvailability.status === 'ready';
+  const bookingDisabledReason = !bookingFeatureEnabled
+    ? 'Telehealth booking is turned off for your account.'
+    : bookingAvailability.reason;
 
   const STATUS_STYLE = {
     confirmed: { bg: 'rgba(168,230,207,0.2)', color: 'var(--hf-mint-strong)' },
@@ -406,9 +418,9 @@ export default function Telehealth() {
             )}
           </div>
 
-          {!canBook && (
+          {!canBook && bookingDisabledReason && (
             <div className="rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: 'var(--hf-border)', background: 'var(--hf-surface-2)', color: 'var(--hf-text-muted)' }}>
-              {bookingAvailability.reason}
+              {bookingDisabledReason}
             </div>
           )}
 
@@ -497,14 +509,14 @@ export default function Telehealth() {
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-bold capitalize" style={{ background: ss.bg, color: ss.color }}>
                           {apt.status}
                         </span>
-                        {apt.meeting_url && apt.status === 'confirmed' && (
+                        {videoFeatureEnabled && apt.meeting_url && apt.status === 'confirmed' && (
                           <a href={apt.meeting_url} target="_blank" rel="noopener noreferrer">
                             <Button size="sm" className="rounded-xl h-7 text-[10px] px-3" style={{ background: '#d7f576', color: '#0a1200' }}>
                               <Video size={10} className="mr-1" /> Join
                             </Button>
                           </a>
                         )}
-                        {apt.status === 'confirmed' && isFuture(new Date(apt.scheduled_at)) && (
+                        {cancelFeatureEnabled && apt.status === 'confirmed' && isFuture(new Date(apt.scheduled_at)) && (
                           <button onClick={() => cancelApt.mutate(apt.id)}
                             className="text-[9px]" style={{ color: 'var(--hf-coral-strong)' }}>Cancel</button>
                         )}
@@ -524,7 +536,7 @@ export default function Telehealth() {
       {/* Booking dialog */}
       {bookingDoctor && (
         <BookingDialog doctor={bookingDoctor} open={!!bookingDoctor} onClose={() => setBookingDoctor(null)}
-          user={user} activeProfileId={activeProfileId} documents={documents} />
+          user={user} activeProfileId={activeProfileId} documents={documents} bookingFeatureEnabled={bookingFeatureEnabled} />
       )}
 
       {/* Add doctor dialog */}

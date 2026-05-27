@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp, Trophy, Zap } from 'lucide-react';
+import { useFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 // ── Badge catalog (expanded) ──────────────────────────────────────────────────
 export const ALL_BADGES = [
@@ -118,7 +119,7 @@ function BadgeCard({ badge, earned, earnedAt }) {
 }
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
-function Leaderboard({ allProfiles }) {
+function Leaderboard({ tiersEnabled }) {
   // Build anonymized leaderboard from all GamificationProfiles the admin can see
   // For non-admin: we show only other users' points anonymized
   const { data: allGameProfiles = [] } = useQuery({
@@ -158,9 +159,9 @@ function Leaderboard({ allProfiles }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold" style={{ color: 'var(--hf-text)' }}>{row.anon}</p>
-            <p className="text-[9px]" style={{ color: 'var(--hf-text-muted)' }}>
-              {getTier(row.total_points || 0).name} · Streak {row.current_streak || 0}d
-            </p>
+                <p className="text-[9px]" style={{ color: 'var(--hf-text-muted)' }}>
+                  {tiersEnabled ? `${getTier(row.total_points || 0).name} · ` : ''}Streak {row.current_streak || 0}d
+                </p>
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-sm font-black" style={{ color: 'var(--hf-lemon-strong)' }}>{(row.total_points || 0).toLocaleString()}</p>
@@ -175,6 +176,7 @@ function Leaderboard({ allProfiles }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function GamificationDashboard() {
   const { user } = useActiveProfile();
+  const { hasFeature, loading: flagsLoading } = useFeatureFlags();
   const [awarding, setAwarding] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('progress');
@@ -206,6 +208,9 @@ export default function GamificationDashboard() {
   };
 
   const pts = profile?.total_points || 0;
+  const tiersEnabled = !flagsLoading && hasFeature('gamification_tiers');
+  const healthBadgesEnabled = !flagsLoading && hasFeature('gamification_health_badges');
+  const activityFeedEnabled = !flagsLoading && hasFeature('activity_feed');
   const { level, progress, next } = getLevelInfo(pts);
   const tier = getTier(pts);
   const nextTier = TIERS.find(t => t.minPts > pts) || TIERS[TIERS.length - 1];
@@ -225,12 +230,14 @@ export default function GamificationDashboard() {
     return days;
   }, [profile]);
 
-  const categories = ['all', ...new Set(ALL_BADGES.map(b => b.category))];
-  const filteredBadges = badgeFilter === 'all' ? ALL_BADGES : ALL_BADGES.filter(b => b.category === badgeFilter);
+  const availableBadges = healthBadgesEnabled ? ALL_BADGES : ALL_BADGES.filter((b) => b.category !== 'health');
+  const earnedVisibleBadgeCount = availableBadges.filter((b) => earnedBadgeIds.includes(b.id)).length;
+  const categories = ['all', ...new Set(availableBadges.map((b) => b.category))];
+  const filteredBadges = badgeFilter === 'all' ? availableBadges : availableBadges.filter((b) => b.category === badgeFilter);
 
   const TABS = [
     { key: 'progress', label: '⭐ Progress' },
-    { key: 'badges',   label: `🏅 Badges (${earnedBadgeIds.length}/${ALL_BADGES.length})` },
+    { key: 'badges',   label: `🏅 Badges (${earnedVisibleBadgeCount}/${availableBadges.length})` },
     { key: 'leaderboard', label: '🏆 Leaderboard' },
   ];
 
@@ -249,26 +256,28 @@ export default function GamificationDashboard() {
       </div>
 
       {/* Tier banner */}
-      <div className="p-4 rounded-2xl mb-4 flex items-center gap-4"
-        style={{ background: `linear-gradient(135deg, ${tier.color}33, ${tier.color}11)`, border: `1px solid ${tier.color}44` }}>
-        <div className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center flex-shrink-0"
-          style={{ background: tier.color }}>
-          <span className="text-2xl">{tier.icon}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-              style={{ background: `${tier.color}44`, color: tier.color }}>{tier.badge}</span>
-            <span className="text-xs font-black" style={{ color: 'var(--hf-text)' }}>{tier.name} · Level {level}</span>
+      {tiersEnabled && (
+        <div className="p-4 rounded-2xl mb-4 flex items-center gap-4"
+          style={{ background: `linear-gradient(135deg, ${tier.color}33, ${tier.color}11)`, border: `1px solid ${tier.color}44` }}>
+          <div className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center flex-shrink-0"
+            style={{ background: tier.color }}>
+            <span className="text-2xl">{tier.icon}</span>
           </div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
-              {pts.toLocaleString()} / {nextTier.minPts.toLocaleString()} pts to {nextTier.name}
-            </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                style={{ background: `${tier.color}44`, color: tier.color }}>{tier.badge}</span>
+              <span className="text-xs font-black" style={{ color: 'var(--hf-text)' }}>{tier.name} · Level {level}</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
+                {pts.toLocaleString()} / {nextTier.minPts.toLocaleString()} pts to {nextTier.name}
+              </span>
+            </div>
+            <Progress value={tierProgress} className="h-2 rounded-full" />
           </div>
-          <Progress value={tierProgress} className="h-2 rounded-full" />
         </div>
-      </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-2 mb-4">
@@ -276,7 +285,7 @@ export default function GamificationDashboard() {
           { label: 'Points',    value: pts.toLocaleString(), color: 'var(--hf-lemon-strong)', textColor: '#0a1200', icon: '💎' },
           { label: 'Level',     value: level,                 color: 'var(--hf-lavender-strong)', textColor: '#1a0a40', icon: '⭐' },
           { label: 'Streak',    value: `${profile?.current_streak || 0}d`, color: 'var(--hf-peach-strong)', textColor: '#3d1a00', icon: '🔥' },
-          { label: 'Badges',    value: earnedBadgeIds.length, color: 'var(--hf-mint-strong)', textColor: '#003d20', icon: '🏅' },
+          { label: 'Badges',    value: earnedVisibleBadgeCount, color: 'var(--hf-mint-strong)', textColor: '#003d20', icon: '🏅' },
         ].map(s => (
           <div key={s.label} className="rounded-2xl p-3 flex flex-col gap-0.5 text-center" style={{ background: s.color }}>
             <span className="text-base">{s.icon}</span>
@@ -324,6 +333,7 @@ export default function GamificationDashboard() {
           </Card>
 
           {/* Tier roadmap */}
+          {tiersEnabled && (
           <Card className="border-0 card-shadow rounded-2xl">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-sm font-bold" style={{ color: 'var(--hf-text)' }}>Tier Roadmap</CardTitle>
@@ -356,6 +366,7 @@ export default function GamificationDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           <div className="grid sm:grid-cols-2 gap-4">
             {/* Earn points */}
@@ -411,10 +422,10 @@ export default function GamificationDashboard() {
           </div>
 
           {/* Recent activity */}
-          {profile?.points_history?.length > 0 && (
+          {activityFeedEnabled && profile?.points_history?.length > 0 && (
             <Card className="border-0 card-shadow rounded-2xl">
               <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm font-bold" style={{ color: 'var(--hf-text)' }}>Recent Activity</CardTitle>
+              <CardTitle className="text-sm font-bold" style={{ color: 'var(--hf-text)' }}>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0 space-y-1.5">
                 {[...(profile.points_history || [])].reverse().slice(0, 8).map((h, i) => (
@@ -495,9 +506,9 @@ export default function GamificationDashboard() {
                 {tier.icon}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>You · {tier.name}</p>
+              <p className="text-sm font-black" style={{ color: 'var(--hf-text)' }}>You{tiersEnabled ? ` · ${tier.name}` : ''}</p>
                 <p className="text-xs" style={{ color: 'var(--hf-text-muted)' }}>
-                  {pts.toLocaleString()} pts · {profile.current_streak || 0}-day streak · {earnedBadgeIds.length} badges
+                  {pts.toLocaleString()} pts · {profile.current_streak || 0}-day streak · {earnedVisibleBadgeCount} badges
                 </p>
               </div>
             </div>
@@ -511,7 +522,7 @@ export default function GamificationDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <Leaderboard />
+              <Leaderboard tiersEnabled={tiersEnabled} />
             </CardContent>
           </Card>
         </div>

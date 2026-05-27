@@ -52,8 +52,8 @@ export const availabilityRegistry = Object.freeze({
     reason: TODO_DATA_CONTRACTS.deviceSync,
   },
   telehealthBooking: {
-    state: FeatureAvailability.UNAVAILABLE,
-    reason: TODO_DATA_CONTRACTS.telehealthProviders,
+    state: FeatureAvailability.READY,
+    reason: "",
   },
   adminAds: {
     state: FeatureAvailability.UNAVAILABLE,

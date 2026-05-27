@@ -11,6 +11,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import MarketingHome from '@/pages/MarketingHome';
 import Layout from '@/Layout.jsx';
 import { base44 } from '@/api/base44Client';
+import { PLAN_DEFAULTS, resolveFeatureFlags } from '@/lib/FeatureFlagsContext';
 
 // Bind page components to route registry (breaks circular dep)
 bindPages(PAGES);
@@ -22,10 +23,12 @@ function LayoutWrapper({ children, pageId }) {
   return children;
 }
 
-function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin }) {
+function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin, featureKey }) {
   const navigate = useNavigate();
   const { isAuthenticated, isLoadingAuth, authError, user } = useAuth();
   const [adminAccess, setAdminAccess] = useState({ status: 'idle' });
+  const [featureAccess, setFeatureAccess] = useState({ status: 'idle' });
+  const [featureRefreshNonce, setFeatureRefreshNonce] = useState(0);
 
   useEffect(() => {
     if (!isLoadingAuth && requiresAuth && !isAuthenticated) {
@@ -69,6 +72,56 @@ function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin }) {
     };
   }, [isAuthenticated, isLoadingAuth, requiresAdmin, user?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!featureKey) {
+      setFeatureAccess({ status: 'idle' });
+      return undefined;
+    }
+
+    if (isLoadingAuth || !isAuthenticated) {
+      setFeatureAccess({ status: 'idle' });
+      return undefined;
+    }
+
+    setFeatureAccess({ status: 'loading' });
+
+    const checkFeatureAccess = async () => {
+      try {
+        const currentUser = await base44.auth.me();
+        const [subs = [], assignments = []] = await Promise.all([
+          base44.entities.UserSubscription.filter({ user_email: currentUser.email }).catch(() => []),
+          base44.entities.FeatureFlagAssignment.list('-created_date', 1000).catch(() => []),
+        ]);
+        const activeSub = (Array.isArray(subs) ? subs : []).find((s) => s.status === 'active' || s.status === 'trialing');
+        const plan = activeSub?.plan_key || 'free';
+        const resolved = resolveFeatureFlags(Array.isArray(assignments) ? assignments : [], plan, currentUser.email);
+        const defaultForPlan = (PLAN_DEFAULTS[plan] || PLAN_DEFAULTS.free)?.[featureKey] ?? false;
+        const enabled = resolved?.[featureKey] ?? defaultForPlan;
+        if (cancelled) return;
+        setFeatureAccess({ status: enabled ? 'allowed' : 'denied' });
+      } catch {
+        if (cancelled) return;
+        setFeatureAccess({ status: 'denied' });
+      }
+    };
+
+    checkFeatureAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [featureKey, isAuthenticated, isLoadingAuth, user?.id, featureRefreshNonce]);
+
+  useEffect(() => {
+    if (!featureKey || !isAuthenticated) return undefined;
+    const unsub = base44.entities.FeatureFlagAssignment.subscribe(() => {
+      setFeatureRefreshNonce((n) => n + 1);
+    });
+    return unsub;
+  }, [featureKey, isAuthenticated]);
+
   if (isLoadingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--hf-bg)', color: 'var(--hf-text)' }}>
@@ -94,6 +147,18 @@ function ProtectedRoute({ children, pageId, requiresAuth, requiresAdmin }) {
   }
 
   if (requiresAdmin && adminAccess.status === 'denied') {
+    return <Navigate to={defaultAuthenticatedRoute} replace />;
+  }
+
+  if (featureKey && isAuthenticated && featureAccess.status !== 'allowed' && featureAccess.status !== 'denied') {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--hf-bg)', color: 'var(--hf-text)' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current" />
+      </div>
+    );
+  }
+
+  if (featureKey && featureAccess.status === 'denied') {
     return <Navigate to={defaultAuthenticatedRoute} replace />;
   }
 
@@ -138,9 +203,10 @@ function AppRoutes() {
 
           const requiresAuth = r.requiresAuth;
           const requiresAdmin = r.requiresAdmin;
+          const featureKey = r.featureKey;
 
           const element = requiresAuth || requiresAdmin ? (
-            <ProtectedRoute pageId={r.id} requiresAuth={requiresAuth} requiresAdmin={requiresAdmin}>
+            <ProtectedRoute pageId={r.id} requiresAuth={requiresAuth} requiresAdmin={requiresAdmin} featureKey={featureKey}>
               <PageComponent />
             </ProtectedRoute>
           ) : (

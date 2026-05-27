@@ -124,6 +124,7 @@ async function invokeDocumentProcessor(document, options = {}) {
     source:
       options.source ??
       (document.file_type?.startsWith("image/") ? "scan" : "upload"),
+    auto_link_profiles: options.autoLinkProfiles ?? true,
   });
 
   return unwrapResponse(response);
